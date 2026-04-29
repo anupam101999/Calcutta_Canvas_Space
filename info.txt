@@ -1,0 +1,8 @@
+git reset --soft HEAD~2
+git push origin main --force-with-lease
+
+
+git reset $(git rev-list --max-parents=0 HEAD)
+git add -A       
+git commit -m "Analytics Update Add Register"
+git push --force   

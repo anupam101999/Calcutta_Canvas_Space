@@ -11,6 +11,8 @@ export default function AccountPage() {
   const handleSignOut = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("notifications");
+    localStorage.removeItem("userId");
     navigate("/login", { replace: true });
   };
 
@@ -52,7 +54,6 @@ export default function AccountPage() {
               </span>
             </div>
           </div>
-
 
           {/* Edit Profile — navigates to dedicated page */}
           <button

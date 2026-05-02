@@ -146,10 +146,26 @@ export default function NotificationsPage() {
   const [selected, setSelected] = useState(null);
 
   const userId = localStorage.getItem("userId");
-
   useEffect(() => {
+    const stored = localStorage.getItem("notifications");
+
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setNotifications(parsed);
+        setLoading(false); 
+        return; 
+      } catch (e) {
+        console.error("Invalid localStorage data");
+      }
+    }
+
+    // Only runs if no local data
     fetchNotifications(userId)
-      .then(setNotifications)
+      .then((data) => {
+        setNotifications(data);
+        localStorage.setItem("notifications", JSON.stringify(data)); // optional: cache it
+      })
       .finally(() => setLoading(false));
   }, [userId]);
 

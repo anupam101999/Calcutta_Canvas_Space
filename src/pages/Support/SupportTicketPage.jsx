@@ -79,6 +79,7 @@ export default function SupportTicketPage() {
         setError(data.message || "Failed to submit ticket. Please try again.");
         return;
       }
+      localStorage.removeItem("notifications");
       setSuccess(true);
     } catch {
       setError("Could not reach the server. Please try again.");

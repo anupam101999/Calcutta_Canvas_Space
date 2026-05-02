@@ -1,4 +1,4 @@
-import { BottomTabBar } from "../components/BottomTabBar";
+import { BottomTabBar } from "../../components/BottomTabBar";
 
 const STATS = [
   {

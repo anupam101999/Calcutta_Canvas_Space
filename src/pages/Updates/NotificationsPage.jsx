@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BottomTabBar } from "../components/BottomTabBar";
+import { BottomTabBar } from "../../components/BottomTabBar";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 

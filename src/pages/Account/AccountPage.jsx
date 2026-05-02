@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BottomTabBar } from "../components/BottomTabBar";
+import { BottomTabBar } from "../../components/BottomTabBar";
 
 export default function AccountPage() {
   const navigate = useNavigate();

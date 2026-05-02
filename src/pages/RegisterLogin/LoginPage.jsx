@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthScreenShell } from "../components/AuthScreenShell";
-import { AuthFormField } from "../components/AuthFormField";
+import { AuthScreenShell } from "../../components/AuthScreenShell";
+import { AuthFormField } from "../../components/AuthFormField";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 

@@ -1,15 +1,15 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import VerifyPhonePage from "./pages/VerifyPhonePage";
-import HomePage from "./pages/HomePage";
-import NotificationsPage from "./pages/NotificationsPage";
-import SupportPage from "./pages/SupportPage";
-import AccountPage from "./pages/AccountPage";
-import EditProfilePage from "./pages/EditProfilePage";
+import LoginPage from "./pages/RegisterLogin/LoginPage";
+import RegisterPage from "./pages/RegisterLogin/RegisterPage";
+import HomePage from "./pages/RegisterLogin/HomePage";
+import VerifyPhonePage from "./pages/Support/VerifyPhonePage";
+import NotificationsPage from "./pages/Updates/NotificationsPage";
+import SupportPage from "./pages/Support/SupportPage";
+import AccountPage from "./pages/Account/AccountPage";
+import EditProfilePage from "./pages/Account/EditProfilePage";
 import { Analytics } from "@vercel/analytics/react";
-import SupportTicketPage from "./pages/SupportTicketPage";
-import ProjectTeamPage from "./pages/ProjectTeamPage";
+import SupportTicketPage from "./pages/Support/SupportTicketPage";
+import ProjectTeamPage from "./pages/Support/ProjectTeamPage";
 
 // Simple token guard — no Firebase, just localStorage
 function Protected({ children }) {

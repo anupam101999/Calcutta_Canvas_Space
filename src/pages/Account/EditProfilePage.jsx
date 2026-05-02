@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BottomTabBar } from "../components/BottomTabBar";
+import { BottomTabBar } from "../../components/BottomTabBar";
 import {
   DatePickerField,
   DatePickerModal,
-} from "../components/DatePickerModal";
+} from "../../components/DatePickerModal";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

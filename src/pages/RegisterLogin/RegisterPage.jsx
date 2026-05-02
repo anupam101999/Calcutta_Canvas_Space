@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthScreenShell } from "../components/AuthScreenShell";
-import { AuthFormField, AuthTextareaField } from "../components/AuthFormField";
+import { AuthScreenShell } from "../../components/AuthScreenShell";
+import { AuthFormField, AuthTextareaField } from "../../components/AuthFormField";
 import {
   DatePickerField,
   DatePickerModal,
-} from "../components/DatePickerModal";
+} from "../../components/DatePickerModal";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

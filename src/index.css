@@ -1293,11 +1293,11 @@ body {
   color: var(--muted);
 }
 .detail-card {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e8e0d8;
-  padding: 14px 18px;
-  margin-bottom: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 28px 20px 22px;
+  gap: 10px;
 }
 .detail-card--dark {
   background: #1a1410;
@@ -1370,4 +1370,3 @@ body {
   background: #e3f2fd;
   color: #1565c0;
 }
-

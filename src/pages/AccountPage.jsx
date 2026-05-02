@@ -53,17 +53,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Settings stub */}
-          <div className="detail-card">
-            <span className="detail-card-title">Preferences</span>
-            <p
-              className="detail-card-val"
-              style={{ color: "var(--text-3)", fontSize: 13, lineHeight: 1.6 }}
-            >
-              Notification settings, communication preferences, and saved
-              addresses will appear here once wired to your backend.
-            </p>
-          </div>
 
           {/* Edit Profile — navigates to dedicated page */}
           <button

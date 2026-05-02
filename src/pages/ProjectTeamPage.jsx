@@ -2,18 +2,18 @@ import { useNavigate } from "react-router-dom";
 
 const TEAM = [
   {
-    name: "Animesh Mandal",
-    role: "Chief Architect",
-    phone: "+917001299763",
-    display: "+91 7001299763",
-    initials: "AM",
-  },
-  {
     name: "Animesh Dutta",
     role: "CEO",
     phone: "+919007522271",
     display: "+91 9007522271",
     initials: "AD",
+  },
+  {
+    name: "Animesh Mandal",
+    role: "Chief Designer",
+    phone: "+917001299763",
+    display: "+91 7001299763",
+    initials: "AM",
   },
   {
     name: "Anupam Podder",

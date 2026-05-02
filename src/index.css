@@ -1270,3 +1270,104 @@ body {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   margin-top: 12px;
 }
+/* Detail view */
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 20px;
+  padding: 0;
+}
+.detail-header {
+  margin-bottom: 20px;
+}
+.detail-subject {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 6px 0 4px;
+}
+.detail-id {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.detail-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e8e0d8;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+.detail-card--dark {
+  background: #1a1410;
+}
+.detail-card-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.detail-card-title--dark {
+  color: #7a6e65;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e8e0d8;
+}
+.detail-row:last-child {
+  border-bottom: none;
+}
+.detail-label {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.detail-value {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+.detail-text {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #1a1410;
+}
+.detail-text--dark {
+  color: #e8e0d8;
+}
+.notif-empty {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.notif-dot--read {
+  background: #c8bfb5;
+}
+
+/* Status pills */
+.status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.status-open {
+  background: #fff3e0;
+  color: #b45309;
+}
+.status-closed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.status-pending {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+

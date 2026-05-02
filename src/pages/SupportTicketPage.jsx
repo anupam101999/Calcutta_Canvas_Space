@@ -60,6 +60,7 @@ export default function SupportTicketPage() {
       category,
       subject: subject.trim(),
       query: query.trim(),
+      type: "Ticket",
     };
 
     try {

@@ -1,44 +1,162 @@
+import { useState, useEffect } from "react";
 import { BottomTabBar } from "../components/BottomTabBar";
 
-const UPDATES = [
-  {
-    id: 1,
-    badge: "Design",
-    msg: "Your revised living room mood board is ready for review.",
-    time: "2 min ago",
-    read: false,
-  },
-  {
-    id: 2,
-    badge: "Vendor",
-    msg: "Vendor quotes for wardrobe finishes were added this morning.",
-    time: "1 hr ago",
-    read: false,
-  },
-  {
-    id: 3,
-    badge: "Visit",
-    msg: "Support confirmed tomorrow's measurement visit at 11:00 AM.",
-    time: "3 hr ago",
-    read: false,
-  },
-  {
-    id: 4,
-    badge: "Approval",
-    msg: "Kitchen lighting approval is pending your confirmation.",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: 5,
-    badge: "Payment",
-    msg: "Milestone 2 invoice has been generated and sent to your email.",
-    time: "Yesterday",
-    read: true,
-  },
-];
+const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+// ── helpers ────────────────────────────────────────────────────────────────
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 60) return `${m} min ago`;
+  if (h < 24) return `${h} hr ago`;
+  if (d === 1) return "Yesterday";
+  return `${d} days ago`;
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function cap(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
+}
+
+// ── fetch ──────────────────────────────────────────────────────────────────
+
+async function fetchNotifications(userId) {
+  const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}`);
+  const data = await res.json();
+  return data.tickets;
+}
+
+// ── Detail View ────────────────────────────────────────────────────────────
+
+function TicketDetail({ ticket, onBack }) {
+  const label = ticket.type || cap(ticket.category);
+
+  return (
+    <div className="app-shell">
+      <div className="page-scroll">
+        <div className="notif-content page-enter">
+          {/* Back button — same style as ProjectTeamPage */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 4,
+            }}
+          >
+            <button
+              onClick={onBack}
+              style={{
+                background: "var(--clay-pale)",
+                border: "none",
+                borderRadius: "var(--r-sm)",
+                width: 38,
+                height: 38,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                fontSize: 20,
+                color: "var(--clay)",
+                flexShrink: 0,
+              }}
+            >
+              ‹
+            </button>
+            <h1 className="page-title" style={{ margin: 0 }}>
+              Ticket Details
+            </h1>
+          </div>
+
+          {/* Header */}
+          <div className="detail-header">
+            <span
+              className={`notif-badge badge-${(ticket.type || "").toLowerCase()}`}
+            >
+              {label}
+            </span>
+            <h2 className="detail-subject">{ticket.subject}</h2>
+            <p className="detail-id">ID: {ticket.ticket_id}</p>
+          </div>
+
+          {/* Details card */}
+          <div className="detail-card">
+            <p className="detail-card-title">Details</p>
+            <div className="detail-row">
+              <span className="detail-label">Category</span>
+              <span className="detail-value">{cap(ticket.category)}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Status</span>
+              <span
+                className={`status-pill status-${(ticket.status || "").toLowerCase()}`}
+              >
+                {ticket.status}
+              </span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Created</span>
+              <span className="detail-value">
+                {formatDate(ticket.created_at)}
+              </span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Updated</span>
+              <span className="detail-value">
+                {formatDate(ticket.updated_at)}
+              </span>
+            </div>
+          </div>
+
+          {/* Query */}
+          <div className="detail-card">
+            <p className="detail-card-title">Your Query :</p>
+            <p className="detail-text">{ticket.query}</p>
+          </div>
+
+          {/* Reply */}
+          <div className="detail-card">
+            <p className="detail-card-title">Support Team Reply :</p>
+            <p className="detail-text">{ticket.reply}</p>
+          </div>
+        </div>
+      </div>
+      <BottomTabBar />
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  const userId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    fetchNotifications(userId)
+      .then(setNotifications)
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  if (selected) {
+    return <TicketDetail ticket={selected} onBack={() => setSelected(null)} />;
+  }
+
   return (
     <div className="app-shell">
       <div className="page-scroll">
@@ -49,21 +167,40 @@ export default function NotificationsPage() {
             messages.
           </p>
 
-          {UPDATES.map((u) => (
-            <div
-              key={u.id}
-              className={`notif-card ${u.read ? "notif-card--read" : ""}`}
-            >
-              <div className="notif-card-inner">
-                <div className="notif-dot" />
-                <div className="notif-card-body">
-                  <span className="notif-badge">{u.badge}</span>
-                  <p className="notif-msg">{u.msg}</p>
-                  <span className="notif-time">{u.time}</span>
+          {loading && <p className="notif-empty">Loading notifications…</p>}
+
+          {!loading && notifications.length === 0 && (
+            <p className="notif-empty">No notifications yet.</p>
+          )}
+
+          {notifications.map((n, i) => {
+            const isRead = n.status === "closed";
+            const label = n.type || cap(n.category);
+
+            return (
+              <div
+                key={n.notification_id}
+                className={`notif-card ${isRead ? "notif-card--read" : ""}`}
+                onClick={() => setSelected(n)}
+                style={{ animationDelay: `${i * 0.06}s` }}
+              >
+                <div className="notif-card-inner">
+                  <div
+                    className={`notif-dot ${isRead ? "notif-dot--read" : ""}`}
+                  />
+                  <div className="notif-card-body">
+                    <span
+                      className={`notif-badge badge-${(n.type || "").toLowerCase()}`}
+                    >
+                      {label}
+                    </span>
+                    <p className="notif-msg">{n.subject}</p>
+                    <span className="notif-time">{timeAgo(n.created_at)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <BottomTabBar />

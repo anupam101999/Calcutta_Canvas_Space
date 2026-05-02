@@ -116,13 +116,13 @@ export default function HomePage() {
                 walkthroughs, and next steps.
               </span>
             </div>
-            <div className="action-card action-card--secondary">
+            {/* <div className="action-card action-card--secondary">
               <span className="action-card-title-dark">Share Inspiration</span>
               <span className="action-card-copy-dark">
                 Upload references, colour ideas, and room inspirations for your
                 ongoing project.
               </span>
-            </div>
+            </div> */}
           </div>
 
           {/* ── Sections ── */}
@@ -143,21 +143,6 @@ export default function HomePage() {
               ))}
             </div>
           ))}
-
-          {/* ── Essentials ── */}
-          <div className="section">
-            <div className="section-header">
-              <h2 className="section-title">Customer Essentials</h2>
-            </div>
-            <div className="essentials-grid">
-              {ESSENTIALS.map((e) => (
-                <div key={e.title} className="essential-card">
-                  <span className="essential-title">{e.title}</span>
-                  <span className="essential-copy">{e.copy}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
       <BottomTabBar />

@@ -18,13 +18,7 @@ const CARDS = [
     id: "visit",
     title: "Visit & meeting support",
     copy: "Reschedule site visits, request virtual walkthroughs, or confirm review calls.",
-    route: null,
-  },
-  {
-    id: "materials",
-    title: "Material & delivery queries",
-    copy: "Ask about procurement status, delivery windows, or installation timelines.",
-    route: null,
+    route: "/support/visitmeetingsupport",
   },
 ];
 

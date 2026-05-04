@@ -10,6 +10,7 @@ import EditProfilePage from "./pages/Account/EditProfilePage";
 import { Analytics } from "@vercel/analytics/react";
 import SupportTicketPage from "./pages/Support/SupportTicketPage";
 import ProjectTeamPage from "./pages/Support/ProjectTeamPage";
+import Visitmeetingsupport from "./pages/Support/VisitMeetingSupport";
 
 // Simple token guard — no Firebase, just localStorage
 function Protected({ children }) {
@@ -41,6 +42,14 @@ export default function App() {
           element={
             <Protected>
               <ProjectTeamPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/support/visitmeetingsupport"
+          element={
+            <Protected>
+              <Visitmeetingsupport />
             </Protected>
           }
         />

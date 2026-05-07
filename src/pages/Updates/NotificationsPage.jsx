@@ -3,17 +3,16 @@ import { BottomTabBar } from "../../components/BottomTabBar";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-// ── helpers ────────────────────────────────────────────────────────────────
-
+/* ─── helpers ─────────────────────────────────────────────────────────────── */
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
   const h = Math.floor(diff / 3600000);
   const d = Math.floor(diff / 86400000);
-  if (m < 60) return `${m} min ago`;
-  if (h < 24) return `${h} hr ago`;
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
   if (d === 1) return "Yesterday";
-  return `${d} days ago`;
+  return `${d}d ago`;
 }
 
 function formatDate(iso) {
@@ -30,8 +29,7 @@ function cap(str) {
   return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
 }
 
-// ── fetch ──────────────────────────────────────────────────────────────────
-
+/* ─── API ─────────────────────────────────────────────────────────────────── */
 async function fetchNotifications(userId) {
   const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}`);
   const data = await res.json();
@@ -39,10 +37,12 @@ async function fetchNotifications(userId) {
 }
 
 async function clearNotification(userId, ticketId) {
-  const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}/${ticketId}`, {
-    method: "DELETE",
-  });
-
+  const res = await fetch(
+    `${BASE_URL}/api/myNotifications/${userId}/${ticketId}`,
+    {
+      method: "DELETE",
+    },
+  );
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || "Could not clear notification.");
@@ -53,7 +53,6 @@ async function clearAllNotifications(userId) {
   const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}`, {
     method: "DELETE",
   });
-
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || "Could not clear notifications.");
@@ -61,40 +60,28 @@ async function clearAllNotifications(userId) {
 }
 
 function getCachedNotifications() {
-  const stored = localStorage.getItem("notifications");
-  if (!stored) return null;
-
   try {
-    return JSON.parse(stored);
+    const stored = localStorage.getItem("notifications");
+    return stored ? JSON.parse(stored) : null;
   } catch {
-    console.error("Invalid localStorage data");
     return null;
   }
 }
 
-// ── Detail View ────────────────────────────────────────────────────────────
-
-function TicketDetail({ ticket, onBack, onClear }) {
+/* ─── Detail view ─────────────────────────────────────────────────────────── */
+function TicketDetail({ ticket, onBack, onClear, clearing }) {
   const label = ticket.type || cap(ticket.category);
-
   return (
     <div className="app-shell">
       <div className="page-scroll">
         <div className="notif-content page-enter">
-          {/* Back button — same style as ProjectTeamPage */}
           <div className="inline-center-row stack-header">
-            <button
-              className="icon-back-btn"
-              onClick={onBack}
-            >
+            <button className="icon-back-btn" onClick={onBack}>
               ‹
             </button>
-            <h1 className="page-title page-title--flush">
-              Ticket Details
-            </h1>
+            <h1 className="page-title page-title--flush">Ticket Details</h1>
           </div>
 
-          {/* Header */}
           <div className="detail-header">
             <span
               className={`notif-badge badge-${(ticket.type || "").toLowerCase()}`}
@@ -105,7 +92,6 @@ function TicketDetail({ ticket, onBack, onClear }) {
             <p className="detail-id">ID: {ticket.ticket_id}</p>
           </div>
 
-          {/* Details card */}
           <div className="detail-card">
             <p className="detail-card-title">Details</p>
             <div className="detail-row">
@@ -134,20 +120,23 @@ function TicketDetail({ ticket, onBack, onClear }) {
             </div>
           </div>
 
-          {/* Query */}
           <div className="detail-card">
-            <p className="detail-card-title">Your Query :</p>
+            <p className="detail-card-title">Your Query</p>
             <p className="detail-text">{ticket.query}</p>
           </div>
 
-          {/* Reply */}
           <div className="detail-card">
-            <p className="detail-card-title">Support Team Reply :</p>
+            <p className="detail-card-title">Support Team Reply</p>
             <p className="detail-text">{ticket.reply}</p>
           </div>
 
-          <button className="btn btn--danger" type="button" onClick={onClear}>
-            Clear Notification
+          <button
+            className="btn btn--danger"
+            type="button"
+            onClick={onClear}
+            disabled={clearing}
+          >
+            {clearing ? <span className="spinner" /> : "Clear Notification"}
           </button>
         </div>
       </div>
@@ -156,18 +145,75 @@ function TicketDetail({ ticket, onBack, onClear }) {
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
+/* ─── Notification card ───────────────────────────────────────────────────── */
+function NotifCard({ n, onSelect, onClearOne, clearing }) {
+  const isRead = n.status === "closed";
+  const label = n.type || cap(n.category);
 
+  return (
+    <div
+      className={`notif-card ${isRead ? "notif-card--read" : ""}`}
+      onClick={() => onSelect(n)}
+    >
+      <div className="notif-card-inner">
+        {/* Unread dot */}
+        <div className={`notif-dot ${isRead ? "notif-dot--read" : ""}`} />
+
+        {/* Body */}
+        <div className="notif-card-body" style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
+            <span
+              className={`notif-badge badge-${(n.type || "").toLowerCase()}`}
+            >
+              {label}
+            </span>
+            <span
+              className="notif-time"
+              style={{ marginLeft: "auto", whiteSpace: "nowrap" }}
+            >
+              {timeAgo(n.created_at)}
+            </span>
+          </div>
+          <p className="notif-msg">{n.subject}</p>
+        </div>
+
+        {/* Per-card clear button — stops propagation so it doesn't open detail */}
+        <button
+          type="button"
+          className="notif-clear-btn"
+          disabled={clearing}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClearOne(n.ticket_id);
+          }}
+          aria-label="Clear notification"
+          title="Clear"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main page ───────────────────────────────────────────────────────────── */
 export default function NotificationsPage() {
   const [cached] = useState(() => getCachedNotifications());
   const [notifications, setNotifications] = useState(cached ?? []);
   const [loading, setLoading] = useState(!cached);
   const [selected, setSelected] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [error, setError] = useState("");
   const [clearing, setClearing] = useState(false);
 
   const userId = localStorage.getItem("userId");
+
   const persistNotifications = (next) => {
     setNotifications(next);
     localStorage.setItem("notifications", JSON.stringify(next));
@@ -175,32 +221,23 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (cached) return;
-
-    // Only runs if no local data
     fetchNotifications(userId)
       .then((data) => {
-        setNotifications(data);
-        localStorage.setItem("notifications", JSON.stringify(data)); // optional: cache it
+        persistNotifications(data);
       })
       .catch((e) => setError(e.message || "Could not load notifications."))
       .finally(() => setLoading(false));
   }, [cached, userId]);
 
-  const toggleSelected = (ticketId) => {
-    setSelectedIds((current) =>
-      current.includes(ticketId)
-        ? current.filter((id) => id !== ticketId)
-        : [...current, ticketId],
-    );
-  };
-
+  /* ── clear one ── */
   const handleClearOne = async (ticketId) => {
     try {
       setClearing(true);
       setError("");
       await clearNotification(userId, ticketId);
-      persistNotifications(notifications.filter((n) => n.ticket_id !== ticketId));
-      setSelectedIds((ids) => ids.filter((id) => id !== ticketId));
+      persistNotifications(
+        notifications.filter((n) => n.ticket_id !== ticketId),
+      );
       setSelected(null);
     } catch (e) {
       setError(e.message);
@@ -209,32 +246,14 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleClearSelected = async () => {
-    if (selectedIds.length === 0) return;
-
-    try {
-      setClearing(true);
-      setError("");
-      await Promise.all(selectedIds.map((ticketId) => clearNotification(userId, ticketId)));
-      const selectedSet = new Set(selectedIds);
-      persistNotifications(notifications.filter((n) => !selectedSet.has(n.ticket_id)));
-      setSelectedIds([]);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setClearing(false);
-    }
-  };
-
+  /* ── clear all ── */
   const handleClearAll = async () => {
-    if (notifications.length === 0) return;
-
+    if (!notifications.length) return;
     try {
       setClearing(true);
       setError("");
       await clearAllNotifications(userId);
       persistNotifications([]);
-      setSelectedIds([]);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -242,95 +261,178 @@ export default function NotificationsPage() {
     }
   };
 
+  /* ── detail view ── */
   if (selected) {
     return (
       <TicketDetail
         ticket={selected}
         onBack={() => setSelected(null)}
         onClear={() => handleClearOne(selected.ticket_id)}
+        clearing={clearing}
       />
     );
   }
+
+  const unread = notifications.filter((n) => n.status !== "closed");
+  const read = notifications.filter((n) => n.status === "closed");
 
   return (
     <div className="app-shell">
       <div className="page-scroll">
         <div className="notif-content page-enter">
-          <h1 className="page-title">Notifications</h1>
-          <p className="page-subtitle">
-            Project alerts, design approvals, visit schedules, and team
-            messages.
-          </p>
+          {/* ── Page header ── */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div>
+              <h1 className="page-title">Notifications</h1>
+              <p className="page-subtitle">
+                Project alerts, design approvals, visit schedules, and team
+                messages.
+              </p>
+            </div>
 
-          {notifications.length > 0 && (
-            <div className="notif-actions">
+            {/* Clear All — top right, only when there's something to clear */}
+            {notifications.length > 0 && (
               <button
-                className="btn btn--outline btn--compact"
                 type="button"
-                disabled={clearing || selectedIds.length === 0}
-                onClick={handleClearSelected}
-              >
-                Clear Selected
-              </button>
-              <button
-                className="btn btn--danger btn--compact"
-                type="button"
+                className="btn btn--ghost"
+                style={{
+                  width: "auto",
+                  minHeight: 36,
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  flexShrink: 0,
+                  marginTop: 4,
+                  color: "var(--danger, #c62828)",
+                  border: "1.5px solid currentColor",
+                }}
                 disabled={clearing}
                 onClick={handleClearAll}
               >
-                Clear All
+                {clearing ? <span className="spinner" /> : "Clear all"}
               </button>
+            )}
+          </div>
+
+          {/* ── Summary pill ── */}
+          {notifications.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              {unread.length > 0 && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "var(--clay-pale)",
+                    borderRadius: "var(--r-full)",
+                    padding: "5px 12px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.8px",
+                    textTransform: "uppercase",
+                    color: "var(--clay-deep)",
+                    fontWeight: 600,
+                  }}
+                ></span>
+              )}
+              {read.length > 0 && (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "var(--bg-alt)",
+                    borderRadius: "var(--r-full)",
+                    padding: "5px 12px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: "0.8px",
+                    textTransform: "uppercase",
+                    color: "var(--text-3)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {read.length} read
+                </span>
+              )}
             </div>
           )}
 
           {error && <p className="msg msg--error">{error}</p>}
-
           {loading && <p className="notif-empty">Loading notifications…</p>}
 
           {!loading && notifications.length === 0 && (
-            <p className="notif-empty">No notifications yet.</p>
+            <div style={{ textAlign: "center", padding: "48px 0 32px" }}>
+              <div style={{ fontSize: 44, marginBottom: 10 }}>🔔</div>
+              <p className="notif-empty">You're all caught up.</p>
+            </div>
           )}
 
-          {notifications.map((n) => {
-            const isRead = n.status === "closed";
-            const label = n.type || cap(n.category);
-
-            return (
+          {/* ── Unread ── */}
+          {unread.length > 0 && (
+            <div>
               <div
-                key={n.ticket_id}
-                className={`notif-card ${isRead ? "notif-card--read" : ""}`}
-                onClick={() => setSelected(n)}
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  letterSpacing: "1.2px",
+                  textTransform: "uppercase",
+                  color: "var(--text-4)",
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              ></div>
+              {unread.map((n) => (
+                <NotifCard
+                  key={n.ticket_id}
+                  n={n}
+                  onSelect={setSelected}
+                  onClearOne={handleClearOne}
+                  clearing={clearing}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ── Read ── */}
+          {read.length > 0 && (
+            <div style={{ marginTop: unread.length ? 20 : 0 }}>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  letterSpacing: "1.2px",
+                  textTransform: "uppercase",
+                  color: "var(--text-4)",
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
               >
-                <div className="notif-card-inner">
-                  <button
-                    type="button"
-                    className={`notif-select ${
-                      selectedIds.includes(n.ticket_id) ? "notif-select--active" : ""
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSelected(n.ticket_id);
-                    }}
-                    aria-label={`Select ${n.subject}`}
-                  >
-                    {selectedIds.includes(n.ticket_id) ? "✓" : ""}
-                  </button>
-                  <div
-                    className={`notif-dot ${isRead ? "notif-dot--read" : ""}`}
-                  />
-                  <div className="notif-card-body">
-                    <span
-                      className={`notif-badge badge-${(n.type || "").toLowerCase()}`}
-                    >
-                      {label}
-                    </span>
-                    <p className="notif-msg">{n.subject}</p>
-                    <span className="notif-time">{timeAgo(n.created_at)}</span>
-                  </div>
-                </div>
+                Earlier
               </div>
-            );
-          })}
+              {read.map((n) => (
+                <NotifCard
+                  key={n.ticket_id}
+                  n={n}
+                  onSelect={setSelected}
+                  onClearOne={handleClearOne}
+                  clearing={clearing}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <BottomTabBar />

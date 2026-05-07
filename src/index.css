@@ -1432,7 +1432,9 @@ body {
 .meter::-webkit-progress-value {
   background: var(--green);
   border-radius: 2px;
-  transition: width 0.2s ease, background 0.3s ease;
+  transition:
+    width 0.2s ease,
+    background 0.3s ease;
 }
 
 .meter::-moz-progress-bar {
@@ -2183,4 +2185,36 @@ body {
 .status-pending {
   background: #e3f2fd;
   color: #1565c0;
+}
+/* ── Per-card clear button (NotificationsPage) ─────────────────────────── */
+.notif-clear-btn {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-4);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  align-self: center;
+}
+
+.notif-clear-btn:hover,
+.notif-clear-btn:active {
+  background: rgba(198, 40, 40, 0.08);
+  color: #c62828;
+}
+
+.notif-clear-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }

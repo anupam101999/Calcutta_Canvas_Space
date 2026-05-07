@@ -1,8 +1,32 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getAuthToken } from "../../util/authSession";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_API_URL;
 
+// ── Cache helpers (mirrors NotificationsPage pattern) ──────────────────────
+const CACHE_KEY = "appointments_cache";
+
+function getCachedAppointments() {
+  try {
+    const stored = localStorage.getItem(CACHE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedAppointments(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+function clearAppointmentsCache() {
+  localStorage.removeItem(CACHE_KEY);
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
 async function apiRequest(path, options = {}) {
   const token = getAuthToken();
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -13,23 +37,18 @@ async function apiRequest(path, options = {}) {
       ...options.headers,
     },
   });
-
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || "Request failed");
   }
-
   return res.json();
 }
 
 const fetchAppointments = (userId) =>
-  apiRequest(`/api/appointments/${userId}`).then((data) => data.appointments ?? []);
+  apiRequest(`/api/appointments/${userId}`).then((d) => d.appointments ?? []);
 
 const bookAppointment = (body) =>
-  apiRequest("/api/appointments", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
+  apiRequest("/api/appointments", { method: "POST", body: JSON.stringify(body) });
 
 const rescheduleAppointment = (bookingId, body) =>
   apiRequest(`/api/appointments/${bookingId}/reschedule`, {
@@ -39,59 +58,28 @@ const rescheduleAppointment = (bookingId, body) =>
 
 /* ─── Static data ─────────────────────────────────────────────── */
 const APPT_TYPES = [
-  {
-    value: "Site Visit",
-    emoji: "🏗️",
-    desc: "In-person check of materials, progress, or installation",
-  },
-  {
-    value: "Virtual Walkthrough",
-    emoji: "💻",
-    desc: "Video call to review 3D renders or progress photos",
-  },
-  {
-    value: "Review Call",
-    emoji: "📞",
-    desc: "Quick call with your designer or execution lead",
-  },
-  {
-    value: "Design Consultation",
-    emoji: "🎨",
-    desc: "Deep-dive on finishes, layouts, or sourcing decisions",
-  },
-  {
-    value: "Other",
-    emoji: "💬",
-    desc: "Any other visit, call, or coordination need",
-  },
+  { value: "Site Visit",           emoji: "🏗️", desc: "In-person check of materials, progress, or installation" },
+  { value: "Virtual Walkthrough",  emoji: "💻", desc: "Video call to review 3D renders or progress photos" },
+  { value: "Review Call",          emoji: "📞", desc: "Quick call with your designer or execution lead" },
+  { value: "Design Consultation",  emoji: "🎨", desc: "Deep-dive on finishes, layouts, or sourcing decisions" },
+  { value: "Other",                emoji: "💬", desc: "Any other visit, call, or coordination need" },
 ];
 
 const CATEGORIES = [
-  "Material Review",
-  "Design Approval",
-  "Site Inspection",
-  "Scheduling",
-  "Query / Clarification",
-  "Billing & Invoices",
-  "Other",
+  "Material Review", "Design Approval", "Site Inspection",
+  "Scheduling", "Query / Clarification", "Billing & Invoices", "Other",
 ];
 
 const TIMES = [
-  "09:00", "09:30", "10:00", "10:30",
-  "11:00", "11:30", "12:00", "14:00",
-  "14:30", "15:00", "15:30", "16:00", "16:30",
+  "09:00","09:30","10:00","10:30",
+  "11:00","11:30","12:00","14:00",
+  "14:30","15:00","15:30","16:00","16:30",
 ];
 
-const STATUS_LABELS = {
-  confirmed: "Confirmed",
-  pending: "Pending",
-  cancelled: "Cancelled",
-};
-
 const STATUS_META = {
-  confirmed: { bg: "#e8f5e9", color: "#2e7d32", label: STATUS_LABELS.confirmed },
-  pending: { bg: "#fff3e0", color: "#b45309", label: STATUS_LABELS.pending },
-  cancelled: { bg: "#fce4ec", color: "#c62828", label: STATUS_LABELS.cancelled },
+  confirmed: { bg: "#e8f5e9", color: "#2e7d32", label: "Confirmed" },
+  pending:   { bg: "#fff3e0", color: "#b45309", label: "Pending"   },
+  cancelled: { bg: "#fce4ec", color: "#c62828", label: "Cancelled" },
 };
 
 /* ─── Helpers ─────────────────────────────────────────────────── */
@@ -100,65 +88,64 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 function fmtDate(d) {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun",
-                  "Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${parseInt(day)} ${months[parseInt(m) - 1]} ${y}`;
 }
 
-const typeEmoji = (type) =>
-  APPT_TYPES.find((t) => t.value === type)?.emoji ?? "📋";
+const typeEmoji = (type) => APPT_TYPES.find((t) => t.value === type)?.emoji ?? "📋";
 
 /* ════════════════════════════════════════════════════════════════
    ROOT COMPONENT
-   Props:
-     onBack?: () => void   — shown as back button on list screen
 ════════════════════════════════════════════════════════════════ */
 export default function VisitMeetingSupport({ onBack }) {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const navigate = useNavigate();
+  const user   = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = user.id || localStorage.getItem("userId");
-  const [view, setView]                 = useState("list"); // list | book | confirm
-  const [rescheduleTarget, setTarget]   = useState(null);
-  const [appointments, setAppts]        = useState([]);
-  const [confirmed, setConfirmed]       = useState(null);
+
+  // Use cached appointments as initial state (same pattern as NotificationsPage)
+  const [cached]            = useState(() => getCachedAppointments());
+  const [appointments, setAppts] = useState(cached ?? []);
+  const [loadingAppts, setLoadingAppts] = useState(!cached);
+
+  const [view, setView]               = useState("list");
+  const [rescheduleTarget, setTarget] = useState(null);
+  const [confirmed, setConfirmed]     = useState(null);
   const [isReschedule, setIsReschedule] = useState(false);
 
   const emptyForm = { type:"", subject:"", category:"", query:"", date:"", time:"" };
   const [form, setForm] = useState(emptyForm);
-  const [step, setStep] = useState(1);      // 1 | 2 | 3
-  const [loadingAppointments, setLoadingAppointments] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [loading, setLoading]   = useState(false);
   const [apiError, setApiError] = useState("");
 
+  // Persist helper — keeps state + cache in sync
+  const persistAppts = (next) => {
+    setAppts(next);
+    setCachedAppointments(next);
+  };
+
+  // Only fetch from DB when there's no cache
   useEffect(() => {
-    let alive = true;
-
-    async function loadAppointments() {
-      if (!userId) {
-        setLoadingAppointments(false);
-        setApiError("Please sign in again before booking an appointment.");
-        return;
-      }
-
-      try {
-        setLoadingAppointments(true);
-        setApiError("");
-        const data = await fetchAppointments(userId);
-        if (alive) setAppts(data);
-      } catch (e) {
-        if (alive) setApiError(e.message || "Could not load appointments.");
-      } finally {
-        if (alive) setLoadingAppointments(false);
-      }
+    if (cached) return;            // already have data — skip network call
+    if (!userId) {
+      setLoadingAppts(false);
+      setApiError("Please sign in again before booking an appointment.");
+      return;
     }
-
-    loadAppointments();
-
-    return () => {
-      alive = false;
-    };
-  }, [userId]);
+    let alive = true;
+    fetchAppointments(userId)
+      .then((data) => { if (alive) persistAppts(data); })
+      .catch((e)   => { if (alive) setApiError(e.message || "Could not load appointments."); })
+      .finally(()  => { if (alive) setLoadingAppts(false); });
+    return () => { alive = false; };
+  }, [userId, cached]);
 
   /* ── navigation helpers ── */
+  function handleBack() {
+    if (onBack) onBack();
+    else navigate("/support");
+  }
+
   function openBook() {
     setForm(emptyForm); setStep(1);
     setApiError(""); setTarget(null); setIsReschedule(false);
@@ -177,10 +164,10 @@ export default function VisitMeetingSupport({ onBack }) {
   const setF = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   function canNext() {
-    if (isReschedule)   return !!form.date && !!form.time;
-    if (step === 1)     return !!form.type;
-    if (step === 2)     return form.subject.trim().length > 2 && !!form.category;
-    if (step === 3)     return !!form.date && !!form.time;
+    if (isReschedule) return !!form.date && !!form.time;
+    if (step === 1)   return !!form.type;
+    if (step === 2)   return form.subject.trim().length > 2 && !!form.category;
+    if (step === 3)   return !!form.date && !!form.time;
     return false;
   }
 
@@ -197,10 +184,10 @@ export default function VisitMeetingSupport({ onBack }) {
         preferredDate:   form.date,
         preferredTime:   form.time,
       };
-
       const result = isReschedule
         ? await rescheduleAppointment(rescheduleTarget.id, body)
         : await bookAppointment(body);
+
       const newApt = {
         ...result.appointment,
         confirmationMsg: isReschedule
@@ -208,13 +195,14 @@ export default function VisitMeetingSupport({ onBack }) {
           : "Booking received. We'll confirm within a few hours.",
       };
 
-      if (isReschedule) {
-        setAppts((p) => p.map((a) => (a.id === rescheduleTarget.id ? newApt : a)));
-      } else {
-        setAppts((p) => [newApt, ...p]);
-      }
+      const updated = isReschedule
+        ? appointments.map((a) => (a.id === rescheduleTarget.id ? newApt : a))
+        : [newApt, ...appointments];
 
+      persistAppts(updated);
+      clearAppointmentsCache();          // force fresh fetch next visit
       localStorage.removeItem("notifications");
+
       setConfirmed(newApt);
       setView("confirm");
     } catch (e) {
@@ -230,11 +218,11 @@ export default function VisitMeetingSupport({ onBack }) {
       {view === "list" && (
         <ListScreen
           appointments={appointments}
-          loading={loadingAppointments}
-          error={view === "list" ? apiError : ""}
+          loading={loadingAppts}
+          error={apiError}
           onBook={openBook}
           onReschedule={openReschedule}
-          onBack={onBack}
+          onBack={handleBack}
         />
       )}
       {view === "book" && (
@@ -275,14 +263,9 @@ function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack
 
   return (
     <div className="support-content">
-      {/* Header */}
-      <div className="support-header-row">
-        {onBack && (
-          <button
-            className="btn btn--ghost support-back-compact"
-            onClick={onBack}
-          >←</button>
-        )}
+      {/* Header with back button — matches ProjectTeamPage style */}
+      <div className="inline-center-row">
+        <button className="icon-back-btn" onClick={onBack}>‹</button>
         <div>
           <h1 className="page-title">Visit &amp; Meetings</h1>
           <p className="page-subtitle">Schedule, view, or reschedule your appointments.</p>
@@ -296,25 +279,19 @@ function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack
         <p className="support-hero-copy">
           Site visits · Virtual walkthroughs · Review calls · Design consultations — all in one place.
         </p>
-        <button
-          className="btn btn--secondary support-hero-action"
-          onClick={onBook}
-        >
+        <button className="btn btn--secondary support-hero-action" onClick={onBook}>
           + New Appointment
         </button>
       </div>
 
       {loading && <p className="notif-empty">Loading appointments...</p>}
-      {error && <p className="msg msg--error">{error}</p>}
+      {error   && <p className="msg msg--error">{error}</p>}
 
-      {/* Active appointments */}
       {!loading && active.length > 0 && (
         <div className="section">
           <div className="section-header">
             <span className="section-title">Upcoming</span>
-            <span className="section-count">
-              {active.length} scheduled
-            </span>
+            <span className="section-count">{active.length} scheduled</span>
           </div>
           {active.map((apt) => (
             <ApptCard key={apt.id} apt={apt} onReschedule={onReschedule} />
@@ -322,27 +299,20 @@ function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack
         </div>
       )}
 
-      {/* Cancelled */}
       {!loading && cancelled.length > 0 && (
         <div className="section">
-          <span className="section-title section-title--muted">
-            Cancelled
-          </span>
+          <span className="section-title section-title--muted">Cancelled</span>
           {cancelled.map((apt) => (
             <ApptCard key={apt.id} apt={apt} onReschedule={onReschedule} />
           ))}
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && appointments.length === 0 && !error && (
         <div className="empty-state">
           <div style={{ fontSize:40, marginBottom:10 }}>🗓️</div>
           <p className="page-subtitle empty-state-copy">No appointments yet</p>
-          <button
-            className="btn btn--primary empty-state-action"
-            onClick={onBook}
-          >
+          <button className="btn btn--primary empty-state-action" onClick={onBook}>
             Book your first one
           </button>
         </div>
@@ -359,20 +329,13 @@ function ApptCard({ apt, onReschedule }) {
 
   return (
     <div className="support-card" onClick={() => setOpen((p) => !p)}>
-      {/* Top row */}
       <div className="support-card-header">
         <div className="appt-title-stack">
           <div className="appt-title-row">
             <span className="appt-emoji">{typeEmoji(apt.type)}</span>
-            <span
-              className="support-card-title appt-subject"
-            >
-              {apt.subject}
-            </span>
+            <span className="support-card-title appt-subject">{apt.subject}</span>
           </div>
-          <span className="appt-meta">
-            {apt.type} · {apt.category}
-          </span>
+          <span className="appt-meta">{apt.type} · {apt.category}</span>
         </div>
         <span style={{
           fontSize:18, color:"var(--clay)", flexShrink:0,
@@ -380,20 +343,15 @@ function ApptCard({ apt, onReschedule }) {
         }}>›</span>
       </div>
 
-      {/* Date + status */}
       <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:6, paddingLeft:28, flexWrap:"wrap" }}>
         <span style={{ fontSize:13, color:"var(--text-3)" }}>📆 {fmtDate(apt.date)}</span>
         <span style={{ fontSize:13, color:"var(--text-3)" }}>·</span>
         <span style={{ fontSize:13, color:"var(--text-3)" }}>🕐 {apt.time}</span>
-        <span
-          className="status-pill"
-          style={{ background:st.bg, color:st.color, marginLeft:"auto" }}
-        >
+        <span className="status-pill" style={{ background:st.bg, color:st.color, marginLeft:"auto" }}>
           {st.label}
         </span>
       </div>
 
-      {/* Expanded */}
       {open && (
         <div style={{
           marginTop:12, paddingTop:12,
@@ -446,7 +404,6 @@ function BookScreen({
 }) {
   return (
     <div className="support-content">
-      {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
         <button
           className="btn btn--ghost"
@@ -461,7 +418,6 @@ function BookScreen({
         </div>
       </div>
 
-      {/* Step progress bar (new booking only) */}
       {!isReschedule && (
         <div style={{ display:"flex", gap:8 }}>
           {STEP_LABELS.map((lbl, i) => {
@@ -489,7 +445,6 @@ function BookScreen({
         </div>
       )}
 
-      {/* ══ STEP 1 — Type ══ */}
       {step === 1 && !isReschedule && (
         <div className="section">
           <span className="section-title">What type of appointment?</span>
@@ -512,16 +467,13 @@ function BookScreen({
                     display:"flex", alignItems:"center", justifyContent:"center",
                     background: sel ? "rgba(143,59,46,0.12)" : "var(--bg-alt)",
                     borderRadius:"var(--r-sm)",
-                  }}>
-                    {t.emoji}
-                  </span>
+                  }}>{t.emoji}</span>
                   <div style={{ flex:1 }}>
                     <div className="support-card-title" style={{ color: sel ? "var(--clay-deep)" : "var(--text)" }}>
                       {t.value}
                     </div>
                     <div className="support-card-copy">{t.desc}</div>
                   </div>
-                  {/* Radio circle */}
                   <div style={{
                     width:20, height:20, borderRadius:"50%", flexShrink:0,
                     border:`2px solid ${sel ? "var(--clay)" : "var(--border-2)"}`,
@@ -538,12 +490,9 @@ function BookScreen({
         </div>
       )}
 
-      {/* ══ STEP 2 — Details ══ */}
       {step === 2 && !isReschedule && (
         <div className="section" style={{ gap:16 }}>
           <span className="section-title">Tell us more</span>
-
-          {/* Type recap pill */}
           <div style={{
             display:"inline-flex", alignItems:"center", gap:8, alignSelf:"flex-start",
             background:"var(--clay-pale)", borderRadius:"var(--r-full)", padding:"6px 14px",
@@ -552,12 +501,8 @@ function BookScreen({
             <span style={{
               fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"1.1px",
               textTransform:"uppercase", color:"var(--clay-deep)", fontWeight:600,
-            }}>
-              {form.type}
-            </span>
+            }}>{form.type}</span>
           </div>
-
-          {/* Subject */}
           <div className="field-wrapper">
             <label className="field-label">Subject *</label>
             <input
@@ -571,35 +516,27 @@ function BookScreen({
               {form.subject.length}/120
             </span>
           </div>
-
-          {/* Category */}
           <div className="field-wrapper">
             <label className="field-label">Category *</label>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
               {CATEGORIES.map((cat) => {
                 const sel = form.category === cat;
                 return (
-                  <div
-                    key={cat}
-                    style={{
-                      padding:"10px 12px", borderRadius:"var(--r-md)",
-                      border:`1.5px solid ${sel ? "var(--clay)" : "var(--border)"}`,
-                      background: sel ? "var(--clay-pale)" : "var(--surface)",
-                      cursor:"pointer", fontSize:13, lineHeight:1.35,
-                      fontWeight: sel ? 700 : 500,
-                      color: sel ? "var(--clay-deep)" : "var(--text-2)",
-                      transition:"all 0.12s", touchAction:"manipulation",
-                    }}
-                    onClick={() => setF("category", cat)}
-                  >
+                  <div key={cat} style={{
+                    padding:"10px 12px", borderRadius:"var(--r-md)",
+                    border:`1.5px solid ${sel ? "var(--clay)" : "var(--border)"}`,
+                    background: sel ? "var(--clay-pale)" : "var(--surface)",
+                    cursor:"pointer", fontSize:13, lineHeight:1.35,
+                    fontWeight: sel ? 700 : 500,
+                    color: sel ? "var(--clay-deep)" : "var(--text-2)",
+                    transition:"all 0.12s", touchAction:"manipulation",
+                  }} onClick={() => setF("category", cat)}>
                     {cat}
                   </div>
                 );
               })}
             </div>
           </div>
-
-          {/* Query / notes */}
           <div className="field-wrapper">
             <label className="field-label">
               Query / Notes{" "}
@@ -616,12 +553,10 @@ function BookScreen({
         </div>
       )}
 
-      {/* ══ STEP 3 — Date & Time (new booking) ══ */}
       {step === 3 && !isReschedule && (
         <DateTimeStep form={form} setF={setF} isReschedule={false} />
       )}
 
-      {/* ══ RESCHEDULE — recap + new date/time ══ */}
       {isReschedule && (
         <>
           <div className="detail-card" style={{ gap:8 }}>
@@ -635,7 +570,6 @@ function BookScreen({
         </>
       )}
 
-      {/* Booking summary before confirm (step 3, new) */}
       {step === 3 && !isReschedule && form.date && form.time && (
         <div className="detail-card" style={{ gap:8 }}>
           <div className="detail-card-title">Booking Summary</div>
@@ -648,7 +582,6 @@ function BookScreen({
         </div>
       )}
 
-      {/* API error */}
       {apiError && (
         <div style={{
           background:"rgba(163,52,40,0.08)",
@@ -659,18 +592,12 @@ function BookScreen({
         </div>
       )}
 
-      {/* Navigation */}
       <div style={{ display:"flex", gap:10 }}>
         {!isReschedule && step > 1 && (
-          <button
-            className="btn btn--ghost"
-            style={{ flex:1 }}
-            onClick={() => setStep((s) => s - 1)}
-          >
+          <button className="btn btn--ghost" style={{ flex:1 }} onClick={() => setStep((s) => s - 1)}>
             ← Back
           </button>
         )}
-
         {!isReschedule && step < 3 && (
           <button
             className="btn btn--primary"
@@ -681,7 +608,6 @@ function BookScreen({
             Continue →
           </button>
         )}
-
         {(step === 3 || isReschedule) && (
           <button
             className="btn btn--green"
@@ -689,9 +615,9 @@ function BookScreen({
             disabled={!canNext() || loading}
             onClick={onSubmit}
           >
-            {loading ? (
-              <><span className="spinner" />{isReschedule ? "Rescheduling…" : "Booking…"}</>
-            ) : isReschedule ? "Confirm Reschedule" : "Confirm Booking"}
+            {loading
+              ? <><span className="spinner" />{isReschedule ? "Rescheduling…" : "Booking…"}</>
+              : isReschedule ? "Confirm Reschedule" : "Confirm Booking"}
           </button>
         )}
       </div>
@@ -699,14 +625,12 @@ function BookScreen({
   );
 }
 
-/* ─── Date & time sub-section ─────────────────────────────── */
 function DateTimeStep({ form, setF, isReschedule }) {
   return (
     <div className="section" style={{ gap:14 }}>
       <span className="section-title">
         {isReschedule ? "Pick a new date & time" : "When works for you?"}
       </span>
-
       <div className="field-wrapper">
         <label className="field-label">Date *</label>
         <input
@@ -717,34 +641,27 @@ function DateTimeStep({ form, setF, isReschedule }) {
           onChange={(e) => setF("date", e.target.value)}
         />
       </div>
-
       <div className="field-wrapper">
         <label className="field-label">Preferred time *</label>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
           {TIMES.map((t) => {
             const sel = form.time === t;
             return (
-              <div
-                key={t}
-                style={{
-                  padding:"10px 4px", borderRadius:"var(--r-md)", textAlign:"center",
-                  border:`1.5px solid ${sel ? "var(--clay)" : "var(--border)"}`,
-                  background: sel ? "var(--clay)" : "var(--surface)",
-                  color: sel ? "#fff7f2" : "var(--text-2)",
-                  fontWeight: sel ? 700 : 500,
-                  fontSize:13, cursor:"pointer",
-                  transition:"all 0.12s", touchAction:"manipulation",
-                }}
-                onClick={() => setF("time", t)}
-              >
+              <div key={t} style={{
+                padding:"10px 4px", borderRadius:"var(--r-md)", textAlign:"center",
+                border:`1.5px solid ${sel ? "var(--clay)" : "var(--border)"}`,
+                background: sel ? "var(--clay)" : "var(--surface)",
+                color: sel ? "#fff7f2" : "var(--text-2)",
+                fontWeight: sel ? 700 : 500,
+                fontSize:13, cursor:"pointer",
+                transition:"all 0.12s", touchAction:"manipulation",
+              }} onClick={() => setF("time", t)}>
                 {t}
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* New schedule preview (reschedule only) */}
       {isReschedule && form.date && form.time && (
         <div style={{
           background:"var(--green)", borderRadius:"var(--r-lg)",
@@ -753,9 +670,7 @@ function DateTimeStep({ form, setF, isReschedule }) {
           <span style={{
             fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"1.2px",
             textTransform:"uppercase", color:"var(--amber-pale)",
-          }}>
-            New schedule
-          </span>
+          }}>New schedule</span>
           <span style={{
             fontFamily:"var(--font-serif)", fontSize:22, fontWeight:600,
             color:"#fff7f2", lineHeight:1.2,
@@ -768,7 +683,6 @@ function DateTimeStep({ form, setF, isReschedule }) {
   );
 }
 
-/* ─── Shared summary row ─────────────────────────────────── */
 function SummaryRow({ label, val }) {
   return (
     <div className="detail-card-row">
@@ -792,7 +706,6 @@ function ConfirmScreen({ apt, isReschedule, onDone }) {
       }}>
         {isReschedule ? "🔄" : "✅"}
       </div>
-
       <div style={{ textAlign:"center" }}>
         <h1 className="page-title" style={{ textAlign:"center" }}>
           {isReschedule ? "Rescheduled!" : "Booking Confirmed!"}
@@ -801,33 +714,24 @@ function ConfirmScreen({ apt, isReschedule, onDone }) {
           {apt.confirmationMsg}
         </p>
       </div>
-
-      {/* Appointment summary card */}
       <div className="auth-card" style={{ width:"100%", textAlign:"left" }}>
         <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:8 }}>
           <span style={{
             fontSize:28, width:48, height:48, flexShrink:0,
             display:"flex", alignItems:"center", justifyContent:"center",
             background:"var(--bg-alt)", borderRadius:"var(--r-md)",
-          }}>
-            {typeEmoji(apt.type)}
-          </span>
+          }}>{typeEmoji(apt.type)}</span>
           <div>
             <div style={{
               fontFamily:"var(--font-serif)", fontSize:20, fontWeight:600,
               color:"var(--text)", lineHeight:1.25,
-            }}>
-              {apt.subject}
-            </div>
+            }}>{apt.subject}</div>
             <div style={{
               fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"1.1px",
               textTransform:"uppercase", color:"var(--clay)", marginTop:3,
-            }}>
-              {apt.type} · {apt.category}
-            </div>
+            }}>{apt.type} · {apt.category}</div>
           </div>
         </div>
-
         <hr className="divider" />
         <SummaryRow label="Date"   val={fmtDate(apt.date)} />
         <SummaryRow label="Time"   val={apt.time} />
@@ -837,11 +741,8 @@ function ConfirmScreen({ apt, isReschedule, onDone }) {
         <span style={{
           fontFamily:"var(--font-mono)", fontSize:10,
           color:"var(--text-4)", letterSpacing:"0.8px",
-        }}>
-          Ref: {apt.id}
-        </span>
+        }}>Ref: {apt.id}</span>
       </div>
-
       <button className="btn btn--primary" style={{ marginTop:4 }} onClick={onDone}>
         Back to Appointments
       </button>

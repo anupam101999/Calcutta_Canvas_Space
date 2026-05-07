@@ -87,8 +87,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // Store returned user in sessionStorage (no navigation)
-      sessionStorage.setItem("registered_user", JSON.stringify(data.user));
+      // Store returned user in localStorage (no navigation)
+      localStorage.setItem("registered_user", JSON.stringify(data.user));
 
       // Optional: show a success message or navigate to /login
       navigate("/login", { replace: true });

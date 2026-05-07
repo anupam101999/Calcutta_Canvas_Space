@@ -38,6 +38,28 @@ async function fetchNotifications(userId) {
   return data.tickets;
 }
 
+async function clearNotification(userId, ticketId) {
+  const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}/${ticketId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Could not clear notification.");
+  }
+}
+
+async function clearAllNotifications(userId) {
+  const res = await fetch(`${BASE_URL}/api/myNotifications/${userId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Could not clear notifications.");
+  }
+}
+
 function getCachedNotifications() {
   const stored = localStorage.getItem("notifications");
   if (!stored) return null;
@@ -52,7 +74,7 @@ function getCachedNotifications() {
 
 // ── Detail View ────────────────────────────────────────────────────────────
 
-function TicketDetail({ ticket, onBack }) {
+function TicketDetail({ ticket, onBack, onClear }) {
   const label = ticket.type || cap(ticket.category);
 
   return (
@@ -123,6 +145,10 @@ function TicketDetail({ ticket, onBack }) {
             <p className="detail-card-title">Support Team Reply :</p>
             <p className="detail-text">{ticket.reply}</p>
           </div>
+
+          <button className="btn btn--danger" type="button" onClick={onClear}>
+            Clear Notification
+          </button>
         </div>
       </div>
       <BottomTabBar />
@@ -137,8 +163,16 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState(cached ?? []);
   const [loading, setLoading] = useState(!cached);
   const [selected, setSelected] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [error, setError] = useState("");
+  const [clearing, setClearing] = useState(false);
 
   const userId = localStorage.getItem("userId");
+  const persistNotifications = (next) => {
+    setNotifications(next);
+    localStorage.setItem("notifications", JSON.stringify(next));
+  };
+
   useEffect(() => {
     if (cached) return;
 
@@ -148,11 +182,74 @@ export default function NotificationsPage() {
         setNotifications(data);
         localStorage.setItem("notifications", JSON.stringify(data)); // optional: cache it
       })
+      .catch((e) => setError(e.message || "Could not load notifications."))
       .finally(() => setLoading(false));
   }, [cached, userId]);
 
+  const toggleSelected = (ticketId) => {
+    setSelectedIds((current) =>
+      current.includes(ticketId)
+        ? current.filter((id) => id !== ticketId)
+        : [...current, ticketId],
+    );
+  };
+
+  const handleClearOne = async (ticketId) => {
+    try {
+      setClearing(true);
+      setError("");
+      await clearNotification(userId, ticketId);
+      persistNotifications(notifications.filter((n) => n.ticket_id !== ticketId));
+      setSelectedIds((ids) => ids.filter((id) => id !== ticketId));
+      setSelected(null);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const handleClearSelected = async () => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      setClearing(true);
+      setError("");
+      await Promise.all(selectedIds.map((ticketId) => clearNotification(userId, ticketId)));
+      const selectedSet = new Set(selectedIds);
+      persistNotifications(notifications.filter((n) => !selectedSet.has(n.ticket_id)));
+      setSelectedIds([]);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+
+    try {
+      setClearing(true);
+      setError("");
+      await clearAllNotifications(userId);
+      persistNotifications([]);
+      setSelectedIds([]);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setClearing(false);
+    }
+  };
+
   if (selected) {
-    return <TicketDetail ticket={selected} onBack={() => setSelected(null)} />;
+    return (
+      <TicketDetail
+        ticket={selected}
+        onBack={() => setSelected(null)}
+        onClear={() => handleClearOne(selected.ticket_id)}
+      />
+    );
   }
 
   return (
@@ -164,6 +261,29 @@ export default function NotificationsPage() {
             Project alerts, design approvals, visit schedules, and team
             messages.
           </p>
+
+          {notifications.length > 0 && (
+            <div className="notif-actions">
+              <button
+                className="btn btn--outline btn--compact"
+                type="button"
+                disabled={clearing || selectedIds.length === 0}
+                onClick={handleClearSelected}
+              >
+                Clear Selected
+              </button>
+              <button
+                className="btn btn--danger btn--compact"
+                type="button"
+                disabled={clearing}
+                onClick={handleClearAll}
+              >
+                Clear All
+              </button>
+            </div>
+          )}
+
+          {error && <p className="msg msg--error">{error}</p>}
 
           {loading && <p className="notif-empty">Loading notifications…</p>}
 
@@ -177,11 +297,24 @@ export default function NotificationsPage() {
 
             return (
               <div
-                key={n.notification_id}
+                key={n.ticket_id}
                 className={`notif-card ${isRead ? "notif-card--read" : ""}`}
                 onClick={() => setSelected(n)}
               >
                 <div className="notif-card-inner">
+                  <button
+                    type="button"
+                    className={`notif-select ${
+                      selectedIds.includes(n.ticket_id) ? "notif-select--active" : ""
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelected(n.ticket_id);
+                    }}
+                    aria-label={`Select ${n.subject}`}
+                  >
+                    {selectedIds.includes(n.ticket_id) ? "✓" : ""}
+                  </button>
                   <div
                     className={`notif-dot ${isRead ? "notif-dot--read" : ""}`}
                   />

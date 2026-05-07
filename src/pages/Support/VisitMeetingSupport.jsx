@@ -1,92 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getAuthToken } from "../../util/authSession";
 
-/* ════════════════════════════════════════════════════════════════
-   CONFIG — swap USE_MOCK to false when backend is ready
-════════════════════════════════════════════════════════════════ */
-const USE_MOCK = true; // ← flip to false to hit real API
-const BASE_URL = import.meta.env.VITE_API_URL ?? "https://api.example.com";
+const BASE_URL = import.meta.env.VITE_BASE_URL ?? import.meta.env.VITE_API_URL;
 
-/* ─── API layer ───────────────────────────────────────────────────
- *
- * POST {BASE_URL}/api/support/ticket
- *
- * Request body:
- * {
- *   appointmentType : string,   // "Site Visit" | "Virtual Walkthrough" | …
- *   subject         : string,
- *   category        : string,
- *   query           : string,
- *   preferredDate   : string,   // "YYYY-MM-DD"
- *   preferredTime   : string,   // "HH:MM"
- *   isReschedule    : boolean,
- *   originalId      ?: string,
- * }
- *
- * Expected response: { id, status, confirmationMsg }
- * ─────────────────────────────────────────────────────────────── */
-async function apiBookAppointment(body) {
-  if (USE_MOCK) {
-    await new Promise((r) => setTimeout(r, 1200));
-    return {
-      id: body.isReschedule ? body.originalId : `APT-${Date.now()}`,
-      status: "pending",
-      confirmationMsg: body.isReschedule
-        ? "Your appointment has been rescheduled successfully."
-        : "Booking received. We'll confirm within a few hours.",
-    };
-  }
-
+async function apiRequest(path, options = {}) {
   const token = getAuthToken();
-  const res = await fetch(`${BASE_URL}/api/support/ticket`, {
-    method: "POST",
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
     },
-    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    const msg = await res.text().catch(() => "Request failed");
-    throw new Error(msg);
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Request failed");
   }
-  return res.json(); // { id, status, confirmationMsg }
+
+  return res.json();
 }
 
-/* ─── Mock existing appointments ────────────────────────────── */
-const MOCK_APPOINTMENTS = [
-  {
-    id: "APT-001",
-    type: "Site Visit",
-    subject: "Kitchen tile inspection",
-    category: "Material Review",
-    date: "2025-05-12",
-    time: "11:00",
-    status: "confirmed",
-    note: "Check wall tiles delivery status and grout samples.",
-  },
-  {
-    id: "APT-002",
-    type: "Review Call",
-    subject: "Living room layout final sign-off",
-    category: "Design Approval",
-    date: "2025-05-18",
-    time: "15:30",
-    status: "pending",
-    note: "",
-  },
-  {
-    id: "APT-003",
-    type: "Virtual Walkthrough",
-    subject: "3D render review — master bedroom",
-    category: "Design Approval",
-    date: "2025-04-30",
-    time: "14:00",
-    status: "cancelled",
-    note: "Client requested cancellation.",
-  },
-];
+const fetchAppointments = (userId) =>
+  apiRequest(`/api/appointments/${userId}`).then((data) => data.appointments ?? []);
+
+const bookAppointment = (body) =>
+  apiRequest("/api/appointments", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+const rescheduleAppointment = (bookingId, body) =>
+  apiRequest(`/api/appointments/${bookingId}/reschedule`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 
 /* ─── Static data ─────────────────────────────────────────────── */
 const APPT_TYPES = [
@@ -165,17 +114,49 @@ const typeEmoji = (type) =>
      onBack?: () => void   — shown as back button on list screen
 ════════════════════════════════════════════════════════════════ */
 export default function VisitMeetingSupport({ onBack }) {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const userId = user.id || localStorage.getItem("userId");
   const [view, setView]                 = useState("list"); // list | book | confirm
   const [rescheduleTarget, setTarget]   = useState(null);
-  const [appointments, setAppts]        = useState(MOCK_APPOINTMENTS);
+  const [appointments, setAppts]        = useState([]);
   const [confirmed, setConfirmed]       = useState(null);
   const [isReschedule, setIsReschedule] = useState(false);
 
   const emptyForm = { type:"", subject:"", category:"", query:"", date:"", time:"" };
   const [form, setForm] = useState(emptyForm);
   const [step, setStep] = useState(1);      // 1 | 2 | 3
+  const [loadingAppointments, setLoadingAppointments] = useState(true);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAppointments() {
+      if (!userId) {
+        setLoadingAppointments(false);
+        setApiError("Please sign in again before booking an appointment.");
+        return;
+      }
+
+      try {
+        setLoadingAppointments(true);
+        setApiError("");
+        const data = await fetchAppointments(userId);
+        if (alive) setAppts(data);
+      } catch (e) {
+        if (alive) setApiError(e.message || "Could not load appointments.");
+      } finally {
+        if (alive) setLoadingAppointments(false);
+      }
+    }
+
+    loadAppointments();
+
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
 
   /* ── navigation helpers ── */
   function openBook() {
@@ -208,28 +189,23 @@ export default function VisitMeetingSupport({ onBack }) {
     setLoading(true); setApiError("");
     try {
       const body = {
+        userId,
         appointmentType: form.type,
         subject:         form.subject,
         category:        form.category,
         query:           form.query,
         preferredDate:   form.date,
         preferredTime:   form.time,
-        isReschedule,
-        ...(isReschedule ? { originalId: rescheduleTarget.id } : {}),
       };
 
-      const result = await apiBookAppointment(body);
-
+      const result = isReschedule
+        ? await rescheduleAppointment(rescheduleTarget.id, body)
+        : await bookAppointment(body);
       const newApt = {
-        id:       result.id,
-        type:     form.type,
-        subject:  form.subject,
-        category: form.category,
-        date:     form.date,
-        time:     form.time,
-        status:   result.status ?? "pending",
-        note:     form.query,
-        confirmationMsg: result.confirmationMsg,
+        ...result.appointment,
+        confirmationMsg: isReschedule
+          ? "Your appointment has been rescheduled successfully."
+          : "Booking received. We'll confirm within a few hours.",
       };
 
       if (isReschedule) {
@@ -238,6 +214,7 @@ export default function VisitMeetingSupport({ onBack }) {
         setAppts((p) => [newApt, ...p]);
       }
 
+      localStorage.removeItem("notifications");
       setConfirmed(newApt);
       setView("confirm");
     } catch (e) {
@@ -253,6 +230,8 @@ export default function VisitMeetingSupport({ onBack }) {
       {view === "list" && (
         <ListScreen
           appointments={appointments}
+          loading={loadingAppointments}
+          error={view === "list" ? apiError : ""}
           onBook={openBook}
           onReschedule={openReschedule}
           onBack={onBack}
@@ -290,7 +269,7 @@ export default function VisitMeetingSupport({ onBack }) {
 /* ════════════════════════════════════════════════════════════════
    LIST SCREEN
 ════════════════════════════════════════════════════════════════ */
-function ListScreen({ appointments, onBook, onReschedule, onBack }) {
+function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack }) {
   const active    = appointments.filter((a) => a.status !== "cancelled");
   const cancelled = appointments.filter((a) => a.status === "cancelled");
 
@@ -325,8 +304,11 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
         </button>
       </div>
 
+      {loading && <p className="notif-empty">Loading appointments...</p>}
+      {error && <p className="msg msg--error">{error}</p>}
+
       {/* Active appointments */}
-      {active.length > 0 && (
+      {!loading && active.length > 0 && (
         <div className="section">
           <div className="section-header">
             <span className="section-title">Upcoming</span>
@@ -341,7 +323,7 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
       )}
 
       {/* Cancelled */}
-      {cancelled.length > 0 && (
+      {!loading && cancelled.length > 0 && (
         <div className="section">
           <span className="section-title section-title--muted">
             Cancelled
@@ -353,7 +335,7 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
       )}
 
       {/* Empty state */}
-      {appointments.length === 0 && (
+      {!loading && appointments.length === 0 && !error && (
         <div className="empty-state">
           <div style={{ fontSize:40, marginBottom:10 }}>🗓️</div>
           <p className="page-subtitle empty-state-copy">No appointments yet</p>

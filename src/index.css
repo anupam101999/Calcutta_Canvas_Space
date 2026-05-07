@@ -992,11 +992,34 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 16px 18px;
+  cursor: pointer;
+}
+.notif-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 .notif-card-inner {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+}
+.notif-select {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border-2);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: #fff7f2;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.notif-select--active {
+  background: var(--clay);
+  border-color: var(--clay);
 }
 .notif-dot {
   width: 8px;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomTabBar } from "../../components/BottomTabBar";
+import { getAuthToken } from "../../util/authSession";
 import {
   DatePickerField,
   DatePickerModal,
@@ -96,7 +97,7 @@ export default function EditProfilePage() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const res = await fetch(`${BASE_URL}/api/update`, {
         method: "PUT",
         headers: {
@@ -141,20 +142,10 @@ export default function EditProfilePage() {
           </div>
 
           {/* ── Edit form ── */}
-          <div className="detail-card" style={{ gap: 14 }}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                marginBottom: 4,
-              }}
-            >
+          <div className="detail-card detail-card--compact">
+            <div className="detail-card-heading">
               <span className="detail-card-title">Edit Profile</span>
-              <p
-                className="detail-card-val"
-                style={{ fontSize: 13, color: "var(--text-3)" }}
-              >
+              <p className="detail-card-val detail-card-copy">
                 Update your details below. All fields are required.
               </p>
             </div>
@@ -192,7 +183,7 @@ export default function EditProfilePage() {
                 onChange={(e) => setPhone(e.target.value)}
               />
               {normPhone && !error && (
-                <p className="msg msg--helper" style={{ marginTop: 2 }}>
+                <p className="msg msg--helper msg--small-top">
                   Will save as {normPhone}.
                 </p>
               )}
@@ -217,8 +208,7 @@ export default function EditProfilePage() {
             {/* ── Password toggle ── */}
             <button
               type="button"
-              className="btn btn--ghost"
-              style={{ minHeight: 42, fontSize: 14 }}
+              className="btn btn--ghost btn--compact"
               onClick={() => {
                 setChangePass((p) => !p);
                 setPassword("");

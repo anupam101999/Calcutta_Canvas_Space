@@ -60,7 +60,7 @@ export default function VerifyPhonePage() {
       title="your phone."
       description="Finish account activation with the OTP sent to your Indian mobile number."
       footer={
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="auth-footer-row">
           <span className="auth-footer-text">Need to start over?</span>
           <Link to="/login" className="auth-footer-link">
             Back to login

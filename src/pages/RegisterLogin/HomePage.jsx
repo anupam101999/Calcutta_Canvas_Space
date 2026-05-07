@@ -44,22 +44,6 @@ const SECTIONS = [
   },
 ];
 
-const ESSENTIALS = [
-  {
-    title: "Portfolio Vault",
-    copy: "Browse finished homes and workspace transformations.",
-  },
-  {
-    title: "Team Connect",
-    copy: "Reach your designer, project lead, and coordinator.",
-  },
-  {
-    title: "Material Tracker",
-    copy: "Track approvals, sourcing, and installation phases.",
-  },
-  { title: "Support Hub", copy: "Raise questions or schedule visits anytime." },
-];
-
 export default function HomePage() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const firstName = user.fullName

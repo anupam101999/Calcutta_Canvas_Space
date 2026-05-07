@@ -49,9 +49,10 @@ export default function SupportPage() {
           {CARDS.map((c) => (
             <div
               key={c.id}
-              className="support-card"
+              className={`support-card ${
+                c.route ? "support-card--clickable" : "support-card--static"
+              }`}
               onClick={() => c.route && navigate(c.route)}
-              style={{ cursor: c.route ? "pointer" : "default" }}
             >
               <div className="support-card-header">
                 <span className="support-card-title">{c.title}</span>

@@ -55,23 +55,10 @@ export default function ProjectTeamPage() {
       <div className="page-scroll">
         <div className="support-content page-enter">
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="inline-center-row">
             <button
               onClick={() => navigate("/support")}
-              style={{
-                background: "var(--clay-pale)",
-                border: "none",
-                borderRadius: "var(--r-sm)",
-                width: 38,
-                height: 38,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                fontSize: 20,
-                color: "var(--clay)",
-                flexShrink: 0,
-              }}
+              className="icon-back-btn"
             >
               ‹
             </button>
@@ -95,113 +82,37 @@ export default function ProjectTeamPage() {
 
           {/* Team cards */}
           {TEAM.map((m) => (
-            <div
-              key={m.phone}
-              style={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--r-xl)",
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: 16,
-              }}
-            >
+            <div key={m.phone} className="team-card">
               {/* Avatar with image + initials fallback */}
-              <div style={{ position: "relative", flexShrink: 0 }}>
+              <div className="team-avatar-wrap">
                 <img
                   src="/images/icon.png"
                   alt={m.name}
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    objectPosition: "center",
-                    border: "2.5px solid var(--amber-pale)",
-                    display: "block",
-                    flexShrink: 0,
-                  }}
+                  className="team-avatar-img"
                   onError={(e) => {
                     e.target.style.display = "none";
                     e.target.nextElementSibling.style.display = "flex";
                   }}
                 />
                 {/* Initials fallback — hidden until image fails */}
-                <div
-                  style={{
-                    width: 54,
-                    height: 54,
-                    borderRadius: "50%",
-                    background: "var(--green)",
-                    border: "2.5px solid var(--amber-pale)",
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 20,
-                    fontWeight: 600,
-                    color: "#fff7f2",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                  }}
-                >
+                <div className="team-avatar-fallback">
                   {m.initials}
                 </div>
                 {/* Online dot */}
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 2,
-                    right: 2,
-                    width: 13,
-                    height: 13,
-                    background: "#2d9e6b",
-                    borderRadius: "50%",
-                    border: "2px solid var(--surface)",
-                  }}
-                />
+                <div className="team-online-dot" />
               </div>
 
               {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 700,
-                    color: "var(--text)",
-                    lineHeight: 1.25,
-                  }}
-                >
+              <div className="team-info">
+                <div className="team-name">
                   {m.name}
                 </div>
-                <span
-                  style={{
-                    display: "inline-block",
-                    marginTop: 5,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    letterSpacing: "1px",
-                    textTransform: "uppercase",
-                    color: "var(--clay-deep)",
-                    background: "var(--clay-pale)",
-                    padding: "3px 9px",
-                    borderRadius: 999,
-                  }}
-                >
+                <span className="team-role">
                   {m.role}
                 </span>
                 <div
                   onClick={() => handleCall(m.phone)}
-                  style={{
-                    fontSize: 13,
-                    color: "var(--clay)",
-                    marginTop: 6,
-                    fontWeight: 600,
-                    letterSpacing: "0.3px",
-                    cursor: "pointer",
-                  }}
+                  className="team-phone"
                 >
                   {m.display}
                 </div>
@@ -210,19 +121,7 @@ export default function ProjectTeamPage() {
               {/* Call button */}
               <button
                 onClick={() => handleCall(m.phone)}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  background: "var(--clay-pale)",
-                  border: "1.5px solid var(--amber)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  fontSize: 18,
-                  cursor: "pointer",
-                }}
+                className="team-call-btn"
               >
                 📞
               </button>

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthScreenShell } from "../../components/AuthScreenShell";
 import { AuthFormField } from "../../components/AuthFormField";
+import { hasValidAuthSession, startAuthSession } from "../../util/authSession";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
@@ -11,6 +12,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (hasValidAuthSession()) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -27,9 +34,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Login failed.");
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("userId", data.user.id);
+      startAuthSession({ token: data.token, user: data.user });
       navigate("/home", { replace: true });
     } catch (err) {
       setError(err.message);

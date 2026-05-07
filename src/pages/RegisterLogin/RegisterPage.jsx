@@ -92,7 +92,7 @@ export default function RegisterPage() {
 
       // Optional: show a success message or navigate to /login
       navigate("/login", { replace: true });
-    } catch (err) {
+    } catch {
       setError("Could not reach the server. Please try again.");
     } finally {
       setLoading(false);
@@ -107,12 +107,7 @@ export default function RegisterPage() {
         title="your account."
         description="Register once with your full details, then verify your phone before entering the dashboard."
         footer={
-          <div
-            style={{
-              paddingBottom: "env(safe-area-inset-bottom, 16px)",
-              marginBottom: "8px",
-            }}
-          >
+          <div className="auth-footer-safe">
             <p className="auth-footer-text">
               Already registered?{" "}
               <Link to="/login" className="auth-footer-link">

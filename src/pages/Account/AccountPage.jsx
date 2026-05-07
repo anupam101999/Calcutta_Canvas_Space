@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { BottomTabBar } from "../../components/BottomTabBar";
+import { clearAuthSession } from "../../util/authSession";
 
 export default function AccountPage() {
   const navigate = useNavigate();
@@ -9,10 +10,7 @@ export default function AccountPage() {
   const initial = name[0].toUpperCase();
 
   const handleSignOut = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("notifications");
-    localStorage.removeItem("userId");
+    clearAuthSession();
     navigate("/login", { replace: true });
   };
 
@@ -57,9 +55,8 @@ export default function AccountPage() {
 
           {/* Edit Profile — navigates to dedicated page */}
           <button
-            className="btn btn--outline"
+            className="btn btn--outline btn--top-space"
             type="button"
-            style={{ marginTop: 4 }}
             onClick={() => navigate("/editProfile")}
           >
             Edit Profile

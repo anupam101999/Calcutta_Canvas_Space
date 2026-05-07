@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomTabBar } from "../../components/BottomTabBar";
+import { getAuthToken } from "../../util/authSession";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const MAX_CHARS = 2000;
@@ -36,6 +37,30 @@ export default function SupportTicketPage() {
 
   const charsLeft = MAX_CHARS - query.length;
   const charsUsed = query.length;
+  const subjectMeterClass =
+    subject.length >= 118
+      ? "meter meter--danger"
+      : subject.length >= 110
+        ? "meter meter--warn"
+        : "meter";
+  const queryMeterClass =
+    charsLeft < 50
+      ? "meter meter--danger"
+      : charsLeft < 200
+        ? "meter meter--warn"
+        : "meter";
+  const subjectCountClass =
+    subject.length >= 118
+      ? "char-count char-count--danger"
+      : subject.length >= 110
+        ? "char-count char-count--warn"
+        : "char-count";
+  const queryCountClass =
+    charsLeft < 50
+      ? "char-count char-count--danger"
+      : charsLeft < 200
+        ? "char-count char-count--warn"
+        : "char-count";
 
   const validate = () => {
     if (!category) return "Please select a category.";
@@ -65,7 +90,7 @@ export default function SupportTicketPage() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const res = await fetch(`${BASE_URL}/api/support/ticket`, {
         method: "POST",
         headers: {
@@ -93,27 +118,8 @@ export default function SupportTicketPage() {
     return (
       <div className="app-shell">
         <div className="page-scroll">
-          <div
-            className="account-content page-enter"
-            style={{
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: "70vh",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: "50%",
-                background: "var(--green, #2d5a3d)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
-              }}
-            >
+          <div className="account-content page-enter success-content">
+            <div className="success-icon">
               <svg
                 width="32"
                 height="32"
@@ -127,19 +133,10 @@ export default function SupportTicketPage() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h2 className="profile-name" style={{ marginBottom: 8 }}>
+            <h2 className="profile-name success-title">
               Ticket Submitted!
             </h2>
-            <p
-              className="detail-card-val"
-              style={{
-                color: "var(--text-3)",
-                fontSize: 14,
-                lineHeight: 1.6,
-                maxWidth: 280,
-                margin: "0 auto 28px",
-              }}
-            >
+            <p className="detail-card-val success-copy">
               Your query has been received. Our team will get back to you within
               24 hours on <strong>{email}</strong>.
             </p>
@@ -163,22 +160,11 @@ export default function SupportTicketPage() {
       <div className="page-scroll">
         <div className="account-content page-enter">
           {/* ── Header ── */}
-          <div style={{ marginBottom: 4 }}>
+          <div className="stack-header">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "4px 0",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                color: "var(--text-2, #555)",
-                fontSize: 14,
-                marginBottom: 12,
-              }}
+              className="text-back-btn"
             >
               <svg
                 width="16"
@@ -194,24 +180,10 @@ export default function SupportTicketPage() {
               </svg>
               Back
             </button>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                margin: 0,
-                color: "var(--text-1, #1a1a1a)",
-              }}
-            >
+            <h1 className="form-title">
               Open a Support Ticket 🎫
             </h1>
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--text-3, #888)",
-                marginTop: 6,
-                lineHeight: 1.5,
-              }}
-            >
+            <p className="form-subtitle">
               Describe your issue and our team will respond within 24 hours.
             </p>
           </div>
@@ -227,32 +199,25 @@ export default function SupportTicketPage() {
               <span className="detail-card-key">Email</span>
               <span className="detail-card-val">{email || "—"}</span>
             </div>
-            <div className="detail-card-row" style={{ border: "none" }}>
+            <div className="detail-card-row detail-card-row--last">
               <span className="detail-card-key">Phone</span>
               <span className="detail-card-val">{phone || "Not added"}</span>
             </div>
           </div>
 
           {/* ── Ticket form ── */}
-          <div className="detail-card" style={{ gap: 14 }}>
+          <div className="detail-card detail-card--compact">
             <span className="detail-card-title">Ticket Details 🎫 </span>
 
             {/* Category */}
             <div className="field-wrapper">
               <label className="field-label">Category</label>
               <select
-                className="field-input"
+                className="field-input field-input--select"
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
                   setError("");
-                }}
-                style={{
-                  appearance: "none",
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 14px center",
-                  paddingRight: 36,
                 }}
               >
                 {CATEGORIES.map((c) => (
@@ -268,23 +233,9 @@ export default function SupportTicketPage() {
             </div>
             {/* Subject */}
             <div className="field-wrapper">
-              <label
-                className="field-label"
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
+              <label className="field-label field-label--split">
                 <span>Subject</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 400,
-                    color:
-                      subject.length >= 110
-                        ? subject.length >= 118
-                          ? "#c0392b"
-                          : "#e67e22"
-                        : "var(--text-3, #888)",
-                  }}
-                >
+                <span className={subjectCountClass}>
                   {subject.length} / 120
                 </span>
               </label>
@@ -300,56 +251,23 @@ export default function SupportTicketPage() {
                 }}
               />
               {/* Char progress bar */}
-              <div
-                style={{
-                  height: 3,
-                  borderRadius: 2,
-                  background: "var(--border, #e5e5e5)",
-                  marginTop: 6,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${(subject.length / 120) * 100}%`,
-                    background:
-                      subject.length >= 118
-                        ? "#c0392b"
-                        : subject.length >= 110
-                          ? "#e67e22"
-                          : "var(--green, #2d5a3d)",
-                    transition: "width 0.2s ease, background 0.3s ease",
-                    borderRadius: 2,
-                  }}
-                />
-              </div>
+              <progress
+                className={subjectMeterClass}
+                value={subject.length}
+                max={120}
+              />
             </div>
             {/* Query */}
             <div className="field-wrapper">
-              <label
-                className="field-label"
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
+              <label className="field-label field-label--split">
                 <span>Your query</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 400,
-                    color:
-                      charsLeft < 200
-                        ? charsLeft < 50
-                          ? "#c0392b"
-                          : "#e67e22"
-                        : "var(--text-3, #888)",
-                  }}
-                >
+                <span className={queryCountClass}>
                   {charsUsed} / {MAX_CHARS}
                 </span>
               </label>
               <textarea
                 ref={textareaRef}
-                className="field-input field-input--textarea"
+                className="field-input field-input--textarea field-input--resize"
                 placeholder="Describe your issue in detail — include room names, dates, or any relevant context..."
                 value={query}
                 maxLength={MAX_CHARS}
@@ -358,48 +276,27 @@ export default function SupportTicketPage() {
                   setQuery(e.target.value);
                   setError("");
                 }}
-                style={{ resize: "vertical", minHeight: 160 }}
               />
               {/* Char progress bar */}
-              <div
-                style={{
-                  height: 3,
-                  borderRadius: 2,
-                  background: "var(--border, #e5e5e5)",
-                  marginTop: 6,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${(charsUsed / MAX_CHARS) * 100}%`,
-                    background:
-                      charsLeft < 50
-                        ? "#c0392b"
-                        : charsLeft < 200
-                          ? "#e67e22"
-                          : "var(--green, #2d5a3d)",
-                    transition: "width 0.2s ease, background 0.3s ease",
-                    borderRadius: 2,
-                  }}
-                />
-              </div>
+              <progress
+                className={queryMeterClass}
+                value={charsUsed}
+                max={MAX_CHARS}
+              />
             </div>
           </div>
 
           {error && (
-            <p className="msg msg--error" style={{ marginTop: 0 }}>
+            <p className="msg msg--error msg--flush">
               {error}
             </p>
           )}
 
           <button
             type="button"
-            className="btn btn--green"
+            className="btn btn--green btn--top-space"
             onClick={handleSubmit}
             disabled={loading}
-            style={{ marginTop: 4 }}
           >
             {loading ? <div className="spinner" /> : "Submit Ticket"}
           </button>

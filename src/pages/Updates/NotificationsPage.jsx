@@ -38,6 +38,18 @@ async function fetchNotifications(userId) {
   return data.tickets;
 }
 
+function getCachedNotifications() {
+  const stored = localStorage.getItem("notifications");
+  if (!stored) return null;
+
+  try {
+    return JSON.parse(stored);
+  } catch {
+    console.error("Invalid localStorage data");
+    return null;
+  }
+}
+
 // ── Detail View ────────────────────────────────────────────────────────────
 
 function TicketDetail({ ticket, onBack }) {
@@ -48,34 +60,14 @@ function TicketDetail({ ticket, onBack }) {
       <div className="page-scroll">
         <div className="notif-content page-enter">
           {/* Back button — same style as ProjectTeamPage */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 4,
-            }}
-          >
+          <div className="inline-center-row stack-header">
             <button
+              className="icon-back-btn"
               onClick={onBack}
-              style={{
-                background: "var(--clay-pale)",
-                border: "none",
-                borderRadius: "var(--r-sm)",
-                width: 38,
-                height: 38,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                fontSize: 20,
-                color: "var(--clay)",
-                flexShrink: 0,
-              }}
             >
               ‹
             </button>
-            <h1 className="page-title" style={{ margin: 0 }}>
+            <h1 className="page-title page-title--flush">
               Ticket Details
             </h1>
           </div>
@@ -141,24 +133,14 @@ function TicketDetail({ ticket, onBack }) {
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cached] = useState(() => getCachedNotifications());
+  const [notifications, setNotifications] = useState(cached ?? []);
+  const [loading, setLoading] = useState(!cached);
   const [selected, setSelected] = useState(null);
 
   const userId = localStorage.getItem("userId");
   useEffect(() => {
-    const stored = localStorage.getItem("notifications");
-
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setNotifications(parsed);
-        setLoading(false); 
-        return; 
-      } catch (e) {
-        console.error("Invalid localStorage data");
-      }
-    }
+    if (cached) return;
 
     // Only runs if no local data
     fetchNotifications(userId)
@@ -167,7 +149,7 @@ export default function NotificationsPage() {
         localStorage.setItem("notifications", JSON.stringify(data)); // optional: cache it
       })
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, [cached, userId]);
 
   if (selected) {
     return <TicketDetail ticket={selected} onBack={() => setSelected(null)} />;
@@ -189,7 +171,7 @@ export default function NotificationsPage() {
             <p className="notif-empty">No notifications yet.</p>
           )}
 
-          {notifications.map((n, i) => {
+          {notifications.map((n) => {
             const isRead = n.status === "closed";
             const label = n.type || cap(n.category);
 
@@ -198,7 +180,6 @@ export default function NotificationsPage() {
                 key={n.notification_id}
                 className={`notif-card ${isRead ? "notif-card--read" : ""}`}
                 onClick={() => setSelected(n)}
-                style={{ animationDelay: `${i * 0.06}s` }}
               >
                 <div className="notif-card-inner">
                   <div

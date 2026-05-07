@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { getAuthToken } from "../../util/authSession";
 
 /* ════════════════════════════════════════════════════════════════
    CONFIG — swap USE_MOCK to false when backend is ready
 ════════════════════════════════════════════════════════════════ */
 const USE_MOCK = true; // ← flip to false to hit real API
 const BASE_URL = import.meta.env.VITE_API_URL ?? "https://api.example.com";
-const getToken = () => localStorage.getItem("auth_token") ?? null;
 
 /* ─── API layer ───────────────────────────────────────────────────
  *
@@ -37,7 +37,7 @@ async function apiBookAppointment(body) {
     };
   }
 
-  const token = getToken();
+  const token = getAuthToken();
   const res = await fetch(`${BASE_URL}/api/support/ticket`, {
     method: "POST",
     headers: {
@@ -133,10 +133,16 @@ const TIMES = [
   "14:30", "15:00", "15:30", "16:00", "16:30",
 ];
 
+const STATUS_LABELS = {
+  confirmed: "Confirmed",
+  pending: "Pending",
+  cancelled: "Cancelled",
+};
+
 const STATUS_META = {
-  confirmed: { bg: "#e8f5e9", color: "#2e7d32", label: "Confirmed" },
-  pending:   { bg: "#fff3e0", color: "#b45309", label: "Pending"   },
-  cancelled: { bg: "#fce4ec", color: "#c62828", label: "Cancelled" },
+  confirmed: { bg: "#e8f5e9", color: "#2e7d32", label: STATUS_LABELS.confirmed },
+  pending: { bg: "#fff3e0", color: "#b45309", label: STATUS_LABELS.pending },
+  cancelled: { bg: "#fce4ec", color: "#c62828", label: STATUS_LABELS.cancelled },
 };
 
 /* ─── Helpers ─────────────────────────────────────────────────── */
@@ -291,11 +297,10 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
   return (
     <div className="support-content">
       {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
+      <div className="support-header-row">
         {onBack && (
           <button
-            className="btn btn--ghost"
-            style={{ width:"auto", minHeight:38, padding:"6px 14px", flexShrink:0, marginTop:4 }}
+            className="btn btn--ghost support-back-compact"
             onClick={onBack}
           >←</button>
         )}
@@ -313,8 +318,7 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
           Site visits · Virtual walkthroughs · Review calls · Design consultations — all in one place.
         </p>
         <button
-          className="btn btn--secondary"
-          style={{ marginTop:6, maxWidth:210, minHeight:44, position:"relative", zIndex:1 }}
+          className="btn btn--secondary support-hero-action"
           onClick={onBook}
         >
           + New Appointment
@@ -326,10 +330,7 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
         <div className="section">
           <div className="section-header">
             <span className="section-title">Upcoming</span>
-            <span style={{
-              fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"1px",
-              textTransform:"uppercase", color:"var(--clay)", fontWeight:600,
-            }}>
+            <span className="section-count">
               {active.length} scheduled
             </span>
           </div>
@@ -342,7 +343,7 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
       {/* Cancelled */}
       {cancelled.length > 0 && (
         <div className="section">
-          <span className="section-title" style={{ fontSize:20, color:"var(--text-3)" }}>
+          <span className="section-title section-title--muted">
             Cancelled
           </span>
           {cancelled.map((apt) => (
@@ -353,12 +354,11 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
 
       {/* Empty state */}
       {appointments.length === 0 && (
-        <div style={{ textAlign:"center", padding:"52px 0" }}>
+        <div className="empty-state">
           <div style={{ fontSize:40, marginBottom:10 }}>🗓️</div>
-          <p className="page-subtitle" style={{ textAlign:"center" }}>No appointments yet</p>
+          <p className="page-subtitle empty-state-copy">No appointments yet</p>
           <button
-            className="btn btn--primary"
-            style={{ marginTop:16, maxWidth:220 }}
+            className="btn btn--primary empty-state-action"
             onClick={onBook}
           >
             Book your first one
@@ -372,26 +372,23 @@ function ListScreen({ appointments, onBook, onReschedule, onBack }) {
 /* ─── Appointment card ─────────────────────────────────────── */
 function ApptCard({ apt, onReschedule }) {
   const [open, setOpen] = useState(false);
-  const st = STATUS_META[apt.status] ?? STATUS_META.pending;
+  const status = apt.status || "pending";
+  const st = STATUS_META[status] ?? STATUS_META.pending;
 
   return (
     <div className="support-card" onClick={() => setOpen((p) => !p)}>
       {/* Top row */}
       <div className="support-card-header">
-        <div style={{ display:"flex", flexDirection:"column", gap:3, flex:1, minWidth:0 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:20, flexShrink:0 }}>{typeEmoji(apt.type)}</span>
+        <div className="appt-title-stack">
+          <div className="appt-title-row">
+            <span className="appt-emoji">{typeEmoji(apt.type)}</span>
             <span
-              className="support-card-title"
-              style={{ whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}
+              className="support-card-title appt-subject"
             >
               {apt.subject}
             </span>
           </div>
-          <span style={{
-            fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"1.1px",
-            textTransform:"uppercase", color:"var(--clay)", paddingLeft:28,
-          }}>
+          <span className="appt-meta">
             {apt.type} · {apt.category}
           </span>
         </div>

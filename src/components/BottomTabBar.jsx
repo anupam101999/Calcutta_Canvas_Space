@@ -20,10 +20,7 @@ export function BottomTabBar() {
             className={`tab-item ${active ? "tab-item--active" : ""}`}
             replace
           >
-            <span
-              className="tab-icon"
-              style={{ color: active ? "var(--clay)" : "var(--text-4)" }}
-            >
+            <span className="tab-icon">
               {tab.icon}
             </span>
             <span className="tab-label">{tab.label}</span>

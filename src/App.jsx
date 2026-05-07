@@ -11,12 +11,16 @@ import { Analytics } from "@vercel/analytics/react";
 import SupportTicketPage from "./pages/Support/SupportTicketPage";
 import ProjectTeamPage from "./pages/Support/ProjectTeamPage";
 import Visitmeetingsupport from "./pages/Support/VisitMeetingSupport";
+import { hasValidAuthSession } from "./util/authSession";
 
-// Simple token guard — no Firebase, just localStorage
+
 function Protected({ children }) {
-  const token = localStorage.getItem("token");
-  if (!token) return <Navigate to="/login" replace />;
+  if (!hasValidAuthSession()) return <Navigate to="/login" replace />;
   return children;
+}
+
+function StartRoute() {
+  return <Navigate to={hasValidAuthSession() ? "/home" : "/login"} replace />;
 }
 
 export default function App() {
@@ -24,7 +28,7 @@ export default function App() {
     <>
       <Analytics />
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<StartRoute />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verify-phone" element={<VerifyPhonePage />} />

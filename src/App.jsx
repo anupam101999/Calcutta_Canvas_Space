@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes, useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import LoginPage from "./pages/RegisterLogin/LoginPage";
 import RegisterPage from "./pages/RegisterLogin/RegisterPage";
 import HomePage from "./pages/RegisterLogin/HomePage";
@@ -14,8 +14,6 @@ import ProjectTeamPage from "./pages/Support/ProjectTeamPage";
 import Visitmeetingsupport from "./pages/Support/VisitMeetingSupport";
 import { hasValidAuthSession } from "./util/authSession";
 
-// ── Back-navigation map ───────────────────────────────────────────────────
-// "ROOT" = no parent — back should minimize the app
 const BACK_MAP = {
   "/":                            "ROOT",
   "/login":                       "ROOT",
@@ -31,42 +29,104 @@ const BACK_MAP = {
   "/support/visitmeetingsupport": "/support",
 };
 
-// ── Hook: intercepts Android hardware back button ─────────────────────────
+// ── Debug logger — shows events on screen ────────────────────────────────
+let _setDebugLog = null;
+function debugLog(msg) {
+  const time = new Date().toLocaleTimeString();
+  console.log(`[DEBUG] ${msg}`);
+  if (_setDebugLog) {
+    _setDebugLog((prev) => [`${time} ${msg}`, ...prev].slice(0, 12));
+  }
+}
+
+// ── Debug overlay — fixed bottom panel ───────────────────────────────────
+function DebugOverlay() {
+  const [logs, setLogs] = useState([]);
+  const location = useLocation();
+
+  useEffect(() => {
+    _setDebugLog = setLogs;
+    return () => { _setDebugLog = null; };
+  }, []);
+
+  useEffect(() => {
+    debugLog(`ROUTE → ${location.pathname}`);
+  }, [location.pathname]);
+
+  return (
+    <div style={{
+      position: "fixed",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: "rgba(0,0,0,0.85)",
+      color: "#00ff88",
+      fontFamily: "monospace",
+      fontSize: "11px",
+      padding: "8px",
+      zIndex: 99999,
+      maxHeight: "200px",
+      overflowY: "auto",
+      pointerEvents: "none",
+    }}>
+      <div style={{ color: "#ffcc00", marginBottom: 4 }}>
+        🐛 DEBUG — isWebView: {!!window.ReactNativeWebView ? "YES ✅" : "NO ❌"} | path: {location.pathname}
+      </div>
+      {logs.map((l, i) => <div key={i}>{l}</div>)}
+    </div>
+  );
+}
+
+// ── Back hook with debug ──────────────────────────────────────────────────
 function useAndroidBack() {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     const isWebView = !!window.ReactNativeWebView;
+    const path = location.pathname.replace(/\/+$/, "") || "/";
 
-    // Push a dummy history entry so popstate fires before the browser acts
-    window.history.pushState(null, "", location.pathname);
+    debugLog(`useAndroidBack mounted | path=${path} | isWebView=${isWebView}`);
 
-    const handlePopState = () => {
-      const path = location.pathname.replace(/\/+$/, "") || "/";
+    // Push dummy state
+    window.history.pushState(null, "", path);
+    debugLog(`pushState done | history.length=${window.history.length}`);
+
+    const handlePopState = (e) => {
+      debugLog(`⬅️ popstate fired | path=${path}`);
+
       const dest = BACK_MAP[path];
+      debugLog(`BACK_MAP[${path}] = ${dest}`);
 
       if (dest === undefined || dest === "ROOT") {
-        // At a root screen — tell RN to minimize, re-push state to block browser
         window.history.pushState(null, "", path);
+        debugLog(`At ROOT — re-pushing state`);
+
         if (isWebView) {
+          debugLog(`Posting BACK_AT_ROOT to RN`);
           window.ReactNativeWebView.postMessage(
             JSON.stringify({ type: "BACK_AT_ROOT" })
           );
+        } else {
+          debugLog(`Not in WebView — nothing to do`);
         }
         return;
       }
 
-      // Navigate to the defined parent route
+      debugLog(`Navigating to parent: ${dest}`);
       navigate(dest, { replace: true });
     };
 
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    debugLog(`popstate listener added`);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      debugLog(`popstate listener removed | path=${path}`);
+    };
   }, [location.pathname, navigate]);
 }
 
-// ── Guards ────────────────────────────────────────────────────────────────
 function Protected({ children }) {
   if (!hasValidAuthSession()) return <Navigate to="/login" replace />;
   return children;
@@ -76,13 +136,13 @@ function StartRoute() {
   return <Navigate to={hasValidAuthSession() ? "/home" : "/login"} replace />;
 }
 
-// ── AppInner: needs to be inside router context to use hooks ──────────────
 function AppInner() {
   useAndroidBack();
 
   return (
     <>
       <Analytics />
+      <DebugOverlay />
       <Routes>
         <Route path="/" element={<StartRoute />} />
         <Route path="/login" element={<LoginPage />} />
@@ -91,59 +151,31 @@ function AppInner() {
         <Route path="/editProfile" element={<EditProfilePage />} />
         <Route
           path="/support/ticket"
-          element={
-            <Protected>
-              <SupportTicketPage />
-            </Protected>
-          }
+          element={<Protected><SupportTicketPage /></Protected>}
         />
         <Route
           path="/support/projectTeam"
-          element={
-            <Protected>
-              <ProjectTeamPage />
-            </Protected>
-          }
+          element={<Protected><ProjectTeamPage /></Protected>}
         />
         <Route
           path="/support/visitmeetingsupport"
-          element={
-            <Protected>
-              <Visitmeetingsupport />
-            </Protected>
-          }
+          element={<Protected><Visitmeetingsupport /></Protected>}
         />
         <Route
           path="/home"
-          element={
-            <Protected>
-              <HomePage />
-            </Protected>
-          }
+          element={<Protected><HomePage /></Protected>}
         />
         <Route
           path="/notifications"
-          element={
-            <Protected>
-              <NotificationsPage />
-            </Protected>
-          }
+          element={<Protected><NotificationsPage /></Protected>}
         />
         <Route
           path="/support"
-          element={
-            <Protected>
-              <SupportPage />
-            </Protected>
-          }
+          element={<Protected><SupportPage /></Protected>}
         />
         <Route
           path="/account"
-          element={
-            <Protected>
-              <AccountPage />
-            </Protected>
-          }
+          element={<Protected><AccountPage /></Protected>}
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

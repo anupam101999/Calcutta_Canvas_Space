@@ -138,7 +138,7 @@ export default function EditProfilePage() {
             </div>
             <h2 className="profile-name">{name}</h2>
             <p className="profile-email">{user.email || "—"}</p>
-            <p className="profile-meta">Active customer · Kolkata</p>
+            <p className="profile-meta">Test customer · Kolkata</p>
           </div>
 
           {/* ── Edit form ── */}

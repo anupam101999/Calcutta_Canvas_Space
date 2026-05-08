@@ -25,7 +25,7 @@ export default function AccountPage() {
             </div>
             <h2 className="profile-name">{name}</h2>
             <p className="profile-email">{email}</p>
-            <p className="profile-meta">Active customer · Habra</p>
+            <p className="profile-meta">Test customer · Habra</p>
           </div>
 
           {/* Details */}

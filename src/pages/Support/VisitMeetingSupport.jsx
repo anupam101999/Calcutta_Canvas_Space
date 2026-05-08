@@ -102,31 +102,28 @@ export default function VisitMeetingSupport({ onBack }) {
   const user   = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = user.id || localStorage.getItem("userId");
 
-  // Use cached appointments as initial state (same pattern as NotificationsPage)
-  const [cached]            = useState(() => getCachedAppointments());
+  const [cached]                 = useState(() => getCachedAppointments());
   const [appointments, setAppts] = useState(cached ?? []);
   const [loadingAppts, setLoadingAppts] = useState(!cached);
 
-  const [view, setView]               = useState("list");
-  const [rescheduleTarget, setTarget] = useState(null);
-  const [confirmed, setConfirmed]     = useState(null);
+  const [view, setView]                 = useState("list");
+  const [rescheduleTarget, setTarget]   = useState(null);
+  const [confirmed, setConfirmed]       = useState(null);
   const [isReschedule, setIsReschedule] = useState(false);
 
   const emptyForm = { type:"", subject:"", category:"", query:"", date:"", time:"" };
-  const [form, setForm] = useState(emptyForm);
-  const [step, setStep] = useState(1);
-  const [loading, setLoading]   = useState(false);
+  const [form, setForm]       = useState(emptyForm);
+  const [step, setStep]       = useState(1);
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  // Persist helper — keeps state + cache in sync
   const persistAppts = (next) => {
     setAppts(next);
     setCachedAppointments(next);
   };
 
-  // Only fetch from DB when there's no cache
   useEffect(() => {
-    if (cached) return;            // already have data — skip network call
+    if (cached) return;
     if (!userId) {
       setLoadingAppts(false);
       setApiError("Please sign in again before booking an appointment.");
@@ -200,7 +197,7 @@ export default function VisitMeetingSupport({ onBack }) {
         : [newApt, ...appointments];
 
       persistAppts(updated);
-      clearAppointmentsCache();          // force fresh fetch next visit
+      clearAppointmentsCache();
       localStorage.removeItem("notifications");
 
       setConfirmed(newApt);
@@ -213,43 +210,47 @@ export default function VisitMeetingSupport({ onBack }) {
   }
 
   /* ── render ── */
+  // Mirrors ProjectTeamPage: self-contained app-shell so the header
+  // scrolls naturally with content on every platform.
   return (
-    <div className="page-scroll page-enter">
-      {view === "list" && (
-        <ListScreen
-          appointments={appointments}
-          loading={loadingAppts}
-          error={apiError}
-          onBook={openBook}
-          onReschedule={openReschedule}
-          onBack={handleBack}
-        />
-      )}
-      {view === "book" && (
-        <BookScreen
-          form={form}
-          step={step}
-          setStep={setStep}
-          setF={setF}
-          isReschedule={isReschedule}
-          rescheduleTarget={rescheduleTarget}
-          canNext={canNext}
-          loading={loading}
-          apiError={apiError}
-          onSubmit={handleSubmit}
-          onBack={() => {
-            if (!isReschedule && step > 1) setStep((s) => s - 1);
-            else setView("list");
-          }}
-        />
-      )}
-      {view === "confirm" && confirmed && (
-        <ConfirmScreen
-          apt={confirmed}
-          isReschedule={isReschedule}
-          onDone={() => setView("list")}
-        />
-      )}
+    <div className="app-shell">
+      <div className="page-scroll page-enter">
+        {view === "list" && (
+          <ListScreen
+            appointments={appointments}
+            loading={loadingAppts}
+            error={apiError}
+            onBook={openBook}
+            onReschedule={openReschedule}
+            onBack={handleBack}
+          />
+        )}
+        {view === "book" && (
+          <BookScreen
+            form={form}
+            step={step}
+            setStep={setStep}
+            setF={setF}
+            isReschedule={isReschedule}
+            rescheduleTarget={rescheduleTarget}
+            canNext={canNext}
+            loading={loading}
+            apiError={apiError}
+            onSubmit={handleSubmit}
+            onBack={() => {
+              if (!isReschedule && step > 1) setStep((s) => s - 1);
+              else setView("list");
+            }}
+          />
+        )}
+        {view === "confirm" && confirmed && (
+          <ConfirmScreen
+            apt={confirmed}
+            isReschedule={isReschedule}
+            onDone={() => setView("list")}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -263,7 +264,6 @@ function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack
 
   return (
     <div className="support-content">
-      {/* Header with back button — matches ProjectTeamPage style */}
       <div className="inline-center-row">
         <button className="icon-back-btn" onClick={onBack}>‹</button>
         <div>
@@ -272,7 +272,6 @@ function ListScreen({ appointments, loading, error, onBook, onReschedule, onBack
         </div>
       </div>
 
-      {/* Hero CTA */}
       <div className="support-hero">
         <span className="support-hero-eyebrow">📅 New Appointment</span>
         <p className="support-hero-title">Request a visit or call</p>
